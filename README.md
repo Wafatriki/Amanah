@@ -3,8 +3,8 @@
 ## Descripción del Proyecto
 Este proyecto académico consiste en la detección y clasificación de vehículos utilizando un modelo de redes neuronales convolucionales (CNN) entrenado con un dataset propio. El objetivo es detectar vehículos en imágenes y clasificarlos en cinco categorías: avión, autobús, coche, motocicleta y camión. Para ello, se han empleado diferentes stacks tecnológicos como Python, Keras y TensorFlow.
 
-![Texto alternativo(https://github.com/luism1988/vehicle_detector_and_classifier/blob/main/streamlit/img/gif3.gif?raw=true)
-
+![Texto alternativo](https://github.com/luism1988/vehicle_detector_and_classifier/blob/main/streamlit/img/gif3.gif?raw=true)
+![Descripción de la imagen](https://ejemplo.com/imagen.png)
 
 ## Objetivo
 - Crear un dataset propio a partir de imágenes de vehículos.
