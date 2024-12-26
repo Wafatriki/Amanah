@@ -24,23 +24,13 @@ El modelo utilizado para la clasificación de vehículos es una red neuronal con
 ### Configuraciones de Hiperparámetros
 
 #### Configuración 1: Cambiar el Número de Filtros en las Capas Convolucionales
-<img src="conf1.png" alt="Ejemplo de imagen" width="100"/>
+<img src="images\conf1.png" alt="Ejemplo de imagen" width="300"/>
 
 #### Configuración 2: Cambiar el Tamaño del Kernel en las Capas Convolucionales
-- **Accuracy Inicial**: 0.4338
-- **Accuracy Final**: 0.8549
-- **Val Accuracy Inicial**: 0.4199
-- **Val Accuracy Final**: 0.8831
-- **Val Loss Inicial**: 2.0528
-- **Val Loss Final**: 0.2745
+<img src="images\conf2.png" alt="Ejemplo de imagen" width="300"/>
 
 #### Configuración 3: Cambiar el Tamaño del Lote y el Número de Épocas
-- **Accuracy Inicial**: 0.6938
-- **Accuracy Final**: 0.9473
-- **Val Accuracy Inicial**: 0.2468
-- **Val Accuracy Final**: 0.9048
-- **Val Loss Inicial**: 31.0897
-- **Val Loss Final**: 0.3652
+<img src="images\conf3.png" alt="Ejemplo de imagen" width="300"/>
 
 ### Conclusión
 Todas las configuraciones muestran mejoras significativas en la precisión y la pérdida de validación. Sin embargo, la **Configuración 3** parece ser la mejor opción en términos de precisión y pérdida de validación.
@@ -60,5 +50,7 @@ El modelo fue evaluado utilizando un conjunto de datos de prueba. Se calcularon 
 | **accuracy**  |            |        | 0.8874   | 231     |
 | **macro avg** | 0.8806     | 0.8856 | 0.8812   | 231     |
 | **weighted avg** | 0.8900  | 0.8874 | 0.8864   | 231     |
+
+<img src="images\output.png" alt="Ejemplo de imagen" width="300"/>
 
 El modelo alcanzó una precisión global del 88.74% en el conjunto de prueba. Las métricas de precisión, recall y F1-score para cada categoría de vehículo muestran que el modelo es efectivo en la clasificación de vehículos. La matriz de confusión proporciona una visualización clara del rendimiento del modelo en cada clase.
