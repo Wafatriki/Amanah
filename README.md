@@ -24,12 +24,7 @@ El modelo utilizado para la clasificación de vehículos es una red neuronal con
 ### Configuraciones de Hiperparámetros
 
 #### Configuración 1: Cambiar el Número de Filtros en las Capas Convolucionales
-- **Accuracy Inicial**: 0.4650
-- **Accuracy Final**: 0.9322
-- **Val Accuracy Inicial**: 0.1861
-- **Val Accuracy Final**: 0.9048
-- **Val Loss Inicial**: 7.0554
-- **Val Loss Final**: 0.4290
+![configuración1](red_neuronal/conf1.png)
 
 #### Configuración 2: Cambiar el Tamaño del Kernel en las Capas Convolucionales
 - **Accuracy Inicial**: 0.4338
