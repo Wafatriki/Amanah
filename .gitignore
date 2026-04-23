@@ -1,0 +1,6 @@
+
+.env.local
+
+amanah-app/src/environments/environment.ts
+
+amanah-app/src/environments/environment.prod.ts
