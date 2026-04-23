@@ -1,7 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import sgMail from '@sendgrid/mail';
-import * as path from 'path';
+import * as path from 'node:path';
 import { FieldValue } from 'firebase-admin/firestore';
 
 // Cargar variables de entorno desde .env.local en desarrollo
@@ -171,13 +171,13 @@ export const chatAI = functions.https.onCall(async (data: any, context: any) => 
     const db = admin.firestore();
     const toJSDate = (value: any): Date | null => {
       if (!value) return null;
-      if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+      if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
       if (typeof value?.toDate === 'function') {
         const d = value.toDate();
-        return d instanceof Date && !isNaN(d.getTime()) ? d : null;
+        return d instanceof Date && !Number.isNaN(d.getTime()) ? d : null;
       }
       const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
+      return Number.isNaN(d.getTime()) ? null : d;
     };
 
     // 3. OBTENER DATOS DEL USUARIO Y VERIFICAR QUE TIENE ACCESO AL DEPENDIENTE
@@ -273,30 +273,133 @@ export const chatAI = functions.https.onCall(async (data: any, context: any) => 
     today.setHours(0, 0, 0, 0);
     const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-    const tasksTodayDocs = tasksSnap.docs
-      .filter(doc => {
-        const data = doc.data();
-        const taskDate = toJSDate(data.dueDate);
-        if (!taskDate) return false;
-        taskDate.setHours(0, 0, 0, 0);
-        return taskDate.getTime() === today.getTime();
-      })
-      .map(doc => doc.data());
+    const formatLocalDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
 
-    const tasksCompletedToday = tasksTodayDocs.filter(task => {
+    const isSameDay = (firstDate: Date, secondDate: Date): boolean => {
+      return (
+        firstDate.getDate() === secondDate.getDate() &&
+        firstDate.getMonth() === secondDate.getMonth() &&
+        firstDate.getFullYear() === secondDate.getFullYear()
+      );
+    };
+
+    const getRecurringTaskSchedulesForToday = (taskData: any) => {
+      const dueDate = toJSDate(taskData.dueDate);
+      if (!dueDate) return false;
+
+      const recurrence = taskData.recurrence || {};
+      const recurrenceExceptions = Array.isArray(taskData.recurrenceExceptions) ? taskData.recurrenceExceptions : [];
+      const dueDateString = formatLocalDate(dueDate);
+      const movedAwayFromToday = dueDateString === todayString && recurrenceExceptions.some((exception: any) => exception.originalDate === todayString && exception.newDate !== todayString);
+      const movedToToday = recurrenceExceptions.some((exception: any) => exception.newDate === todayString);
+      const startDate = new Date(dueDate);
+      const recurrenceEndDate = recurrence.endDate ? toJSDate(recurrence.endDate) : null;
+      const endsAfterDays = typeof recurrence.endsAfterDays === 'number' ? recurrence.endsAfterDays : null;
+      const endDate = (() => {
+        if (recurrenceEndDate) return recurrenceEndDate;
+        if (endsAfterDays !== null && Number.isFinite(endsAfterDays)) {
+          const computedEnd = new Date(startDate);
+          computedEnd.setDate(computedEnd.getDate() + endsAfterDays);
+          return computedEnd;
+        }
+        return null;
+      })();
+
+      if (movedAwayFromToday) return false;
+      if (dueDateString === todayString || movedToToday) return true;
+
+      if (startDate > today) return false;
+      if (endDate && endDate < today) return false;
+
+      switch (recurrence.frequency) {
+        case 'daily':
+          return true;
+        case 'weekly': {
+          const dayMap: Record<string, number> = {
+            sunday: 0,
+            monday: 1,
+            tuesday: 2,
+            wednesday: 3,
+            thursday: 4,
+            friday: 5,
+            saturday: 6,
+          };
+
+          const allowedDays = Array.isArray(recurrence.daysOfWeek)
+            ? recurrence.daysOfWeek
+                .map((day: any) => {
+                  if (typeof day === 'number') {
+                    return day;
+                  }
+
+                  const normalizedDay = String(day || '').toLowerCase();
+                  return dayMap[normalizedDay];
+                })
+                .filter((day: any) => typeof day === 'number')
+            : [];
+
+          return allowedDays.includes(today.getDay());
+        }
+        case 'monthly':
+          return startDate.getDate() === today.getDate();
+        case 'yearly':
+          return startDate.getDate() === today.getDate() && startDate.getMonth() === today.getMonth();
+        default:
+          return false;
+      }
+    };
+
+    const tasksTodayDocs = tasksSnap.docs
+      .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
+      .filter(task => getRecurringTaskSchedulesForToday(task));
+
+    const isTaskAssignedToCurrentUser = (taskData: any): boolean => {
+      const assignedTo = Array.isArray(taskData?.assignedTo) ? taskData.assignedTo : [];
+      return assignedTo.some((assignee: any) => {
+        if (typeof assignee === 'string') return assignee === userId;
+        if (assignee && typeof assignee === 'object') {
+          return assignee.userId === userId || assignee.uid === userId || assignee.id === userId;
+        }
+        return false;
+      });
+    };
+
+    const visibleTasksTodayDocs = tasksTodayDocs.filter(task => isTaskAssignedToCurrentUser(task));
+
+    const tasksCompletedToday = visibleTasksTodayDocs.filter(task => {
       const status = String(task.status || '').toLowerCase();
       const completedAt = toJSDate(task.completedAt);
-      const completedToday = !!completedAt && completedAt.toDateString() === today.toDateString();
-      return status === 'completed' || completedToday;
+      const completedInstances = Array.isArray(task.completedInstances) ? task.completedInstances : [];
+      const completedToday = !!completedAt && isSameDay(completedAt, today);
+      return status === 'completed' || completedToday || completedInstances.includes(todayString);
     }).length;
 
-    const tasksToday = tasksTodayDocs
+    const tasksToday = visibleTasksTodayDocs
       .filter(task => {
         const status = String(task.status || '').toLowerCase();
         return status !== 'completed';
       })
       .map(task => task.title)
       .filter((title: any) => typeof title === 'string' && title.trim().length > 0);
+
+    const tasksTodayDetails = visibleTasksTodayDocs
+      .map(task => {
+        const status = String(task.status || '').toLowerCase();
+        const completedAt = toJSDate(task.completedAt);
+        const completedInstances = Array.isArray(task.completedInstances) ? task.completedInstances : [];
+        const completedToday = !!completedAt && isSameDay(completedAt, today);
+        return {
+          title: task.title || 'Tarea',
+          dueTime: task.dueTime || '',
+          completed: status === 'completed' || completedToday || completedInstances.includes(todayString),
+          priority: task.priority || 'medium'
+        };
+      });
 
     const activeMedications = medicationDocs
       .map(doc => doc.data())
@@ -322,21 +425,20 @@ export const chatAI = functions.https.onCall(async (data: any, context: any) => 
           const takenToday =
             s?.lastCompletedDate === todayString ||
             (Array.isArray(s?.completionHistory) && s.completionHistory.includes(todayString)) ||
-            (!!completedAtDate && completedAtDate.toDateString() === today.toDateString());
+            (!!completedAtDate && isSameDay(completedAtDate, today));
 
           return {
             time: s?.time || 'hora no definida',
             dosage: s?.dosage || data.dose || 'dosis no definida',
-            takenToday
+            takenToday,
+            notes: s?.notes || ''
           };
         });
 
         return {
           name: data.name || 'Medicación',
           dose: data.dose || 'según prescripción',
-          schedules: schedulesWithStatus
-            .map((s: any) => `${s.time} (${s.dosage})`)
-            .filter((s: any) => typeof s === 'string'),
+          schedules: schedulesWithStatus,
           takenTodayCount: schedulesWithStatus.filter((s: any) => s.takenToday).length,
           totalScheduleCount: schedulesWithStatus.length
         };
@@ -387,47 +489,173 @@ export const chatAI = functions.https.onCall(async (data: any, context: any) => 
 
     const dependentName = dependentData?.name || 'dependiente';
 
+    const tasksSummaryText = tasksTodayDetails.length > 0
+      ? tasksTodayDetails
+          .map(task => {
+            let line = '- ' + task.title;
+            if (task.dueTime) {
+              line += ' (' + task.dueTime + ')';
+            }
+            if (task.completed) {
+              line += ' [completada]';
+            }
+            return line;
+          })
+          .join('\n')
+      : '- No hay tareas programadas para hoy';
+
+    const medicationsSummaryText = activeMedications.length > 0
+      ? activeMedications
+          .map(med => {
+            const pendingSchedules = med.schedules.filter((schedule: any) => !schedule.takenToday);
+            const scheduleDetails = med.schedules
+              .map((schedule: any) => {
+                let line = schedule.time + ' (' + schedule.dosage + ')';
+                line += schedule.takenToday ? ' [tomada]' : ' [pendiente]';
+                return line;
+              })
+              .join('; ');
+
+            return `- ${med.name} ${med.dose}: ${med.takenTodayCount}/${med.totalScheduleCount} tomadas, ${pendingSchedules.length} pendientes. Horarios: ${scheduleDetails}`;
+          })
+          .join('\n')
+      : '- No hay medicación activa';
+
+    const buildDeterministicReply = (): string | null => {
+      const wantsTasks = /\btarea\b|\btareas\b|\bpendientes?\b|fisioterapia/i.test(userMessage);
+      const wantsMedication = /medic|dosis|jarabe|paracetamol|diazepam|capsul|cápsul|tableta|comprim|inyecc|pastilla/i.test(userMessage);
+      const wantsSummary = /resumen|qué hay hoy|que hay hoy|qué hay|que hay/i.test(userMessage);
+
+      const parseTimeToMinutes = (timeValue: string): number => {
+        const timeMatch = /^([0-9]{1,2}):([0-9]{2})/.exec(String(timeValue || ''));
+        if (!timeMatch) return Number.MAX_SAFE_INTEGER;
+        const hours = Number(timeMatch[1]);
+        const minutes = Number(timeMatch[2]);
+        return (hours * 60) + minutes;
+      };
+
+      if (wantsTasks && !wantsMedication) {
+        const pendingTasks = tasksTodayDetails.filter(task => !task.completed);
+        const completedTasks = tasksTodayDetails.filter(task => task.completed);
+
+        if (tasksTodayDetails.length === 0) {
+          return 'Según el contexto de ' + dependentName + ', no hay tareas programadas para hoy.';
+        }
+
+        const pendingTasksText = pendingTasks.length > 0
+          ? pendingTasks
+              .map(task => task.title + (task.dueTime ? ' a las ' + task.dueTime : ''))
+              .join(', ')
+          : 'ninguna';
+
+        return 'Hoy para ' + dependentName + ' tienes ' + pendingTasks.length + ' tarea(s) pendiente(s): ' + pendingTasksText + '. ' +
+          'Tareas completadas hoy: ' + completedTasks.length + '.';
+      }
+
+      if (wantsMedication && !wantsTasks) {
+        if (activeMedications.length === 0) {
+          return 'Según el contexto de ' + dependentName + ', no hay medicación activa para hoy.';
+        }
+
+        const pendingDoses = activeMedications.flatMap(med =>
+          med.schedules
+            .filter((schedule: any) => !schedule.takenToday)
+            .map((schedule: any) => ({
+              name: med.name,
+              time: schedule.time,
+              dosage: schedule.dosage
+            }))
+        ).sort((firstDose, secondDose) => parseTimeToMinutes(firstDose.time) - parseTimeToMinutes(secondDose.time));
+
+        const takenDoses = activeMedications.flatMap(med =>
+          med.schedules
+            .filter((schedule: any) => schedule.takenToday)
+            .map((schedule: any) => ({
+              name: med.name,
+              time: schedule.time
+            }))
+        ).sort((firstDose, secondDose) => parseTimeToMinutes(firstDose.time) - parseTimeToMinutes(secondDose.time));
+
+        const pendingText = pendingDoses.length > 0
+          ? pendingDoses.map(dose => dose.name + ' a las ' + dose.time + ' (' + dose.dosage + ')').join(', ')
+          : 'No queda ninguna dosis pendiente hoy.';
+
+        const takenText = takenDoses.length > 0
+          ? takenDoses.map(dose => dose.name + ' a las ' + dose.time).join(', ')
+          : 'Todavía no hay dosis marcadas como tomadas hoy.';
+
+        return 'Hoy hay ' + totalDosesToday + ' dosis en total para ' + dependentName + '. ' +
+          'Ya están tomadas ' + dosesTakenToday + ' y faltan ' + Math.max(totalDosesToday - dosesTakenToday, 0) + '. ' +
+          'Pendientes: ' + pendingText + ' ' +
+          'Tomadas: ' + takenText;
+      }
+
+      if (wantsSummary && (tasksTodayDetails.length > 0 || activeMedications.length > 0)) {
+        const pendingTasks = tasksTodayDetails.filter(task => !task.completed).length;
+        const pendingDosesCount = Math.max(totalDosesToday - dosesTakenToday, 0);
+        return 'Resumen de hoy para ' + dependentName + ': tienes ' + pendingTasks + ' tarea(s) pendiente(s) y ' + pendingDosesCount + ' dosis pendientes de medicación.';
+      }
+
+      return null;
+    };
+
+    const deterministicReply = buildDeterministicReply();
+    if (deterministicReply) {
+      await db.collection('ai_chat_logs').add({
+        userId,
+        dependentId,
+        timestamp: FieldValue.serverTimestamp(),
+        questionPreview: userMessage.substring(0, 50),
+        hasAppointments: upcomingAppointments.length > 0,
+        hasMedications: activeMedications.length > 0,
+        hasTasks: tasksTodayDetails.length > 0,
+        responseLength: deterministicReply.length,
+        deterministicReply: true
+      });
+
+      return {
+        success: true,
+        reply: deterministicReply,
+        timestamp: new Date().toISOString()
+      };
+    }
+
     console.log(
       `AI context counts => tasksToday:${tasksToday.length}, tasksCompletedToday:${tasksCompletedToday}, activeMeds:${activeMedications.length}, dosesTakenToday:${dosesTakenToday}/${totalDosesToday}, upcomingAppointments:${upcomingAppointments.length}, apptCompleted:${appointmentStatusSummary.completed}, apptCancelled:${appointmentStatusSummary.cancelled}, apptOverdue:${appointmentStatusSummary.overdue}`
     );
 
     // 8. CONSTRUIR CONTEXTO PARA LA IA (INFORMACIÓN SANITIZADA)
-    const contextInfo = `
-CONTEXTO DEL DEPENDIENTE "${dependentName}":
-- Tareas para hoy: ${tasksToday.length > 0 ? tasksToday.join(', ') : 'No hay tareas'}
-- Estado de tareas hoy: completadas ${tasksCompletedToday}, pendientes ${Math.max(tasksTodayDocs.length - tasksCompletedToday, 0)}
-- Medicamentos activos (${activeMedications.length}) / dosis de hoy (${totalDosesToday}): ${
-      activeMedications.length > 0
-  ? activeMedications.map(m => `${m.name} ${m.dose}. Horarios: ${m.schedules.length > 0 ? m.schedules.join(', ') : 'sin horarios definidos'}`).join('; ')
-        : 'Ninguno'
-    }
-- Dosis tomadas hoy: ${dosesTakenToday} de ${totalDosesToday}
-- Próximas citas (${upcomingAppointments.length}): ${
-      upcomingAppointments.length > 0
-        ? upcomingAppointments.map(a => `${a.title} el ${a.date} a las ${a.time}`).join('; ')
-        : 'Ninguna'
-    }
-- Estado general de citas: completadas ${appointmentStatusSummary.completed}, canceladas ${appointmentStatusSummary.cancelled}, vencidas ${appointmentStatusSummary.overdue}
-`;
+    const contextLines = [
+      'CONTEXTO SANITARIO ANONIMIZADO (SIN IDENTIFICADORES PERSONALES):',
+      '- Tareas hoy (asignadas al cuidador actual): total ' + visibleTasksTodayDocs.length + ', completadas ' + tasksCompletedToday + ', pendientes ' + Math.max(visibleTasksTodayDocs.length - tasksCompletedToday, 0),
+      '- Medicación activa: ' + activeMedications.length + ' medicamento(s), ' + totalDosesToday + ' dosis hoy, ' + dosesTakenToday + ' tomadas, ' + Math.max(totalDosesToday - dosesTakenToday, 0) + ' pendientes',
+      '- Próximas citas: ' + upcomingAppointments.length,
+      '- Estado de citas: completadas ' + appointmentStatusSummary.completed + ', canceladas ' + appointmentStatusSummary.cancelled + ', vencidas ' + appointmentStatusSummary.overdue,
+      '- No incluir nombres, identificadores, ni detalles innecesarios de salud'
+    ];
+    const contextInfo = contextLines.join('\n');
 
     // 9. CONSTRUIR PROMPT DEL SISTEMA
-    const systemPrompt = `Eres un asistente de salud amable y útil para una aplicación de cuidado de dependientes.
-
-${contextInfo}
-
-  DATOS DE CONTEXTO DEL CUIDADOR:
-  - Nombre del cuidador: ${caregiverFirstName}
-
-INSTRUCCIONES:
-- Responde en español de manera clara, concisa y amable
-- Si la pregunta es sobre tareas, medicamentos o citas, usa el contexto anterior
-- Sé breve pero informativo (máximo 150 palabras)
-- Si no tienes información sobre algo, di honestamente que no tienes esos datos
-- NUNCA inventes información médica, diagnósticos o efectos secundarios
-- No des instrucciones medicas prescriptivas (dosis, suspender/iniciar medicacion, diagnosticos o tratamiento)
-- Si el usuario describe sintomas agudos o posible urgencia, indica consultar inmediatamente a un profesional o emergencias
-  - Dirigete al usuario por su nombre (${caregiverFirstName}) o de forma neutra. Nunca le llames "Amanah"
-- Si la pregunta no está relacionada con salud/cuidado, redirige amablemente al tema principal`;
+    const systemPromptLines = [
+      'Eres un asistente de salud amable y útil para una aplicación de cuidado de dependientes.',
+      '',
+      contextInfo,
+      '',
+      'INSTRUCCIONES:',
+      '- Responde en español de manera clara, concisa y amable',
+      '- Si la pregunta es sobre tareas, medicamentos o citas, usa el contexto anterior',
+      '- No recalcules ni inventes cantidades: si el contexto da listas o conteos, repítelos tal cual',
+      '- Sé breve pero informativo (máximo 150 palabras)',
+      '- Usa lenguaje sencillo, sin tecnicismos, apto para una persona mayor',
+      '- Si no tienes información sobre algo, di honestamente que no tienes esos datos',
+      '- NUNCA inventes información médica, diagnósticos o efectos secundarios',
+      '- No des instrucciones medicas prescriptivas (dosis, suspender/iniciar medicacion, diagnosticos o tratamiento)',
+      '- Si el usuario describe sintomas agudos o posible urgencia, indica consultar inmediatamente a un profesional o emergencias',
+      '- Dirígete a la persona de forma neutra y respetuosa',
+      '- RGPD: no revelar ni inferir datos personales o sanitarios más allá del mínimo necesario',
+      '- Si la pregunta no está relacionada con salud/cuidado, redirige amablemente al tema principal'
+    ];
+    const systemPrompt = systemPromptLines.join('\n');
 
     // 10. LLAMAR A GROQ API (GRATIS Y RÁPIDA)
     console.log('Calling Groq API...');

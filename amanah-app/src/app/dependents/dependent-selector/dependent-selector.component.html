@@ -38,14 +38,13 @@
                       [attr.aria-label]="'Ver detalles de ' + dependent.name">
                 <!-- Card Image/Avatar -->
                 <div class="card-image">
-                  @if (dependent.image) {
+                  @if (dependent.image?.trim()) {
                     <img [src]="dependent.image"
+                         (error)="replaceWithEmojiAvatar($event)"
                          [alt]="dependent.name"
                          class="card-img">
                   } @else {
-                    <div class="placeholder">
-                      <img src="/assets/icons/usuario.png" alt="User placeholder" class="placeholder-icon">
-                    </div>
+                    <span class="placeholder" aria-label="Sin foto de perfil">👤</span>
                   }
                 </div>
 

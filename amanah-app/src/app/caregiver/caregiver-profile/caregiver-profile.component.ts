@@ -19,6 +19,9 @@ import { DeleteAccountComponent } from '../../auth/delete-account/delete-account
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CaregiverProfileComponent implements OnInit, OnDestroy {
+  readonly emojiAvatarDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="50" y="58" text-anchor="middle" dominant-baseline="middle" font-size="56">👤</text></svg>'
+  )}`;
   caregiver: User | null = null;
   dependents: Dependent[] = [];
   loading = true;
@@ -99,7 +102,7 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
             }
 
             // Convert Firestore Timestamp to Date if needed
-            if (userData.createdAt && userData.createdAt.toDate) {
+            if (userData.createdAt?.toDate) {
               userData.createdAt = userData.createdAt.toDate();
             }
             this.caregiver = userData;
@@ -217,5 +220,15 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
       'invited': 'Invitado'
     };
     return roleLabels[role] || role;
+  }
+
+  replaceWithEmojiAvatar(event: Event): void {
+    const target = event.target as HTMLImageElement | null;
+    if (!target) {
+      return;
+    }
+
+    target.onerror = null;
+    target.src = this.emojiAvatarDataUrl;
   }
 }

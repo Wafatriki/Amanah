@@ -18,12 +18,15 @@
     <div class="profile-section">
       <!-- Avatar -->
       <div class="avatar-container">
-        @if (dependent.image) {
-          <img [src]="dependent.image" alt="{{ dependent.name }}" class="avatar">
+        @if (dependent.image?.trim()) {
+          <img
+            [src]="dependent.image"
+            (error)="replaceWithEmojiAvatar($event)"
+            alt="{{ dependent.name }}"
+            class="avatar"
+          >
         } @else {
-          <div class="avatar-placeholder">
-            {{ dependent.name.charAt(0).toUpperCase() }}
-          </div>
+          <div class="avatar-placeholder" aria-label="Sin foto de perfil">👤</div>
         }
       </div>
 
@@ -96,10 +99,15 @@
           @for (caregiver of caregivers; track caregiver.userId) {
             <div class="caregiver-item">
               <div class="caregiver-avatar">
-                @if (caregiver.image) {
-                  <img [src]="caregiver.image" alt="{{ caregiver.name }}" class="avatar-image">
+                @if (caregiver.image?.trim()) {
+                  <img
+                    [src]="caregiver.image"
+                    (error)="replaceWithEmojiAvatar($event)"
+                    alt="{{ caregiver.name }}"
+                    class="avatar-image"
+                  >
                 } @else {
-                  {{ caregiver.name.charAt(0).toUpperCase() }}
+                  <span class="avatar-emoji-small" aria-label="Sin foto de perfil">👤</span>
                 }
               </div>
               <div class="caregiver-info">

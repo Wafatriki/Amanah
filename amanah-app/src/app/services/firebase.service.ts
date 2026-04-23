@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { initializeApp } from 'firebase/app';
+import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, Auth, connectAuthEmulator, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -10,26 +10,30 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class FirebaseService {
-  public readonly app = initializeApp(environment.firebase);
+  public readonly app = getApps().length > 0 ? getApp() : initializeApp(environment.firebase);
   public auth: Auth = getAuth(this.app);
   public firestore: Firestore = getFirestore(this.app);
   public storage = getStorage(this.app);
 
   constructor() {
-    // Persistir sesión en localStorage para no perder login al recargar.
-    setPersistence(this.auth, browserLocalPersistence).catch((error) => {
-      console.warn('No se pudo configurar la persistencia local de Auth:', error);
-    });
+    queueMicrotask(() => this.configureAuthPersistence());
 
     console.log('Firebase initialized');
     console.log(`Environment: ${environment.production ? 'PRODUCTION' : 'DEVELOPMENT'}`);
-    
+
     // En desarrollo, usar emuladores solo si se solicita explícitamente con ?firebase=emulator
     if (!environment.production && this.shouldUseEmulators()) {
       this.connectToEmulators();
     } else if (!environment.production) {
       console.log('Usando Firebase real (Auth/Firestore/Functions). Para emuladores usa ?firebase=emulator');
     }
+  }
+
+  private configureAuthPersistence(): void {
+    // Persistir sesión en localStorage para no perder login al recargar.
+    void setPersistence(this.auth, browserLocalPersistence).catch((error) => {
+      console.warn('No se pudo configurar la persistencia local de Auth:', error);
+    });
   }
 
   private shouldUseEmulators(): boolean {

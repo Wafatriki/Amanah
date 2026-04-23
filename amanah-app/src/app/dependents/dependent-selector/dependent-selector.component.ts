@@ -15,6 +15,9 @@ import { Dependent } from '../../models/dependent.model';
   styleUrls: ['./dependent-selector.component.scss']
 })
 export class DependentSelectorComponent implements OnInit {
+  readonly emojiAvatarDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text x="50" y="58" text-anchor="middle" dominant-baseline="middle" font-size="56">👤</text></svg>'
+  )}`;
   dependents: Dependent[] = [];
   filteredDependents: Dependent[] = [];
   loading = true;
@@ -130,6 +133,16 @@ export class DependentSelectorComponent implements OnInit {
     this.searchQuery = '';
     this.filteredDependents = this.dependents;
     this.cdr.markForCheck();
+  }
+
+  replaceWithEmojiAvatar(event: Event): void {
+    const target = event.target as HTMLImageElement | null;
+    if (!target) {
+      return;
+    }
+
+    target.onerror = null;
+    target.src = this.emojiAvatarDataUrl;
   }
 }
 

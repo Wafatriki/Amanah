@@ -387,13 +387,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
         next: (tasks) => {
           // Normalizar tareas al formato nuevo {userId, name}
           const normalizedTasks = tasks.map(task => this.normalizeTask(task));
+          const expandedTasks = this.expandRecurringTasks(normalizedTasks);
+          const currentUserId = this.authService.getCurrentUser()?.uid;
 
           // Obtener fecha de hoy en formato YYYY-MM-DD para evitar problemas de zona horaria
           const today = new Date();
           const todayString = this.getDateString(today);
 
           console.log('DEBUG - TODAY:', todayString);
-          console.log('DEBUG - ALL TASKS:', normalizedTasks.map(t => ({
+          console.log('DEBUG - ALL TASKS:', expandedTasks.map(t => ({
             title: t.title,
             dueDate: t.dueDate,
             dueDateString: this.getDateString(new Date(t.dueDate)),
@@ -401,10 +403,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
           })));
 
           // Todas las tareas
-          this.allTasks = normalizedTasks;
+          this.allTasks = expandedTasks;
 
-          // Tareas de hoy - usar comparación de strings para evitar problemas de zona horaria
-          this.todaysTasks = normalizedTasks.filter(task => {
+          // Tareas de hoy (solo asignadas al usuario actual)
+          this.todaysTasks = expandedTasks.filter(task => {
+            if (!this.isTaskAssignedToUser(task, currentUserId)) return false;
             const taskDateString = this.getDateString(new Date(task.dueDate));
             const match = taskDateString === todayString && task.status === 'pending';
             if (match) {
@@ -416,7 +419,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
           console.log('TODAYS TASKS COUNT:', this.todaysTasks.length);
 
           // Tareas urgentes: solo de hoy y pending
-          this.allUrgentTasks = normalizedTasks.filter(task => {
+          this.allUrgentTasks = expandedTasks.filter(task => {
+            if (!this.isTaskAssignedToUser(task, currentUserId)) return false;
             if (task.status !== 'pending') return false;
 
             const taskDateString = this.getDateString(new Date(task.dueDate));
@@ -432,7 +436,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
           // Reprogramar recordatorios de tareas
           if (this.user) {
-            this.notificationService.rescheduleTaskReminders(normalizedTasks, this.user.uid);
+            this.notificationService.rescheduleTaskReminders(expandedTasks, this.user.uid);
           }
 
           this.updateCalendarDisplay();
@@ -450,6 +454,94 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private getLocalDateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private isTaskAssignedToUser(task: any, userId: string | undefined): boolean {
+    if (!userId) return true;
+    return !!task.assignedTo?.some((a: any) => a.userId === userId);
+  }
+
+  private expandRecurringTasks(tasks: Task[]): Task[] {
+    const expandedTasks: Task[] = [];
+    const dayMap: { [key: string]: number } = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+
+    tasks.forEach(task => {
+      if (
+        task.recurrence?.frequency === 'weekly' &&
+        task.recurrence?.daysOfWeek &&
+        task.recurrence.daysOfWeek.length > 0
+      ) {
+        const startDate = new Date(task.dueDate);
+
+        const daysAsNumbers: number[] = task.recurrence.daysOfWeek
+          .map(day => {
+            if (typeof day === 'number') return day;
+            return dayMap[day as unknown as string];
+          })
+          .filter((day): day is number => day !== undefined);
+
+        let endDate = new Date(startDate);
+        if (task.recurrence.endsAfterDays) {
+          endDate.setDate(endDate.getDate() + task.recurrence.endsAfterDays);
+        } else if (task.recurrence.endDate) {
+          endDate = new Date(task.recurrence.endDate);
+        } else {
+          endDate.setMonth(endDate.getMonth() + 3);
+        }
+
+        const currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+          const dayOfWeek = currentDate.getDay();
+          if (daysAsNumbers.includes(dayOfWeek)) {
+            const dateStr = this.getLocalDateString(currentDate);
+
+            let instanceDate = new Date(currentDate);
+            let displayDate = dateStr;
+
+            if (task.recurrenceExceptions) {
+              const exception = task.recurrenceExceptions.find(ex => ex.originalDate === dateStr);
+              if (exception) {
+                const [year, month, day] = exception.newDate.split('-').map(Number);
+                instanceDate = new Date(year, month - 1, day);
+                displayDate = exception.newDate;
+              }
+            }
+
+            const isCompleted = task.completedInstances?.includes(displayDate) || false;
+
+            expandedTasks.push({
+              ...task,
+              id: `${task.id}-${currentDate.getTime()}`,
+              dueDate: instanceDate,
+              parentTaskId: task.id,
+              status: isCompleted ? 'completed' : task.status,
+              instanceDate: displayDate,
+            });
+          }
+
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      } else {
+        expandedTasks.push(task);
+      }
+    });
+
+    return expandedTasks;
   }
 
   private normalizeTask(task: any): any {
