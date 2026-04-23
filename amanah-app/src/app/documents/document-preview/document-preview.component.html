@@ -1,0 +1,102 @@
+<div class="preview-backdrop" (click)="onBackdropClick($event)">
+  <div class="preview-modal">
+    <!-- Header -->
+    <div class="preview-header">
+      <div class="header-title">
+        <span class="file-icon">{{ getFileIcon() }}</span>
+        <div class="title-info">
+          <h2>{{ document.title || document.fileName }}</h2>
+          <p class="document-type">{{ getDocumentTypeLabel() }}</p>
+        </div>
+      </div>
+      <button class="close-btn" (click)="close()">×</button>
+    </div>
+
+    <div class="preview-content">
+      <!-- Vista previa de imagen -->
+      @if (isImageFile()) {
+        <div class="preview-section image-preview">
+          @if (isLoadingPreview) {
+            <div class="loading">
+              <span>⏳</span>
+              <p>Cargando vista previa...</p>
+            </div>
+          } @else if (filePreviewUrl) {
+            <img [src]="filePreviewUrl" [alt]="document.fileName" />
+          }
+        </div>
+      }
+
+      <!-- Sección de metadatos -->
+      <div class="preview-section metadata-section">
+        <h3>Información del Documento</h3>
+        <div class="metadata-grid">
+          <div class="metadata-item">
+            <label>Archivo:</label>
+            <span>{{ document.fileName }}</span>
+          </div>
+          <div class="metadata-item">
+            <label>Tamaño:</label>
+            <span>{{ (document.fileSize / 1024).toFixed(2) }} KB</span>
+          </div>
+          <div class="metadata-item">
+            <label>Tipo:</label>
+            <span>{{ document.fileType }}</span>
+          </div>
+          <div class="metadata-item">
+            <label>Fecha de carga:</label>
+            <span>{{ document.uploadDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          @if (document.isPrivate) {
+            <div class="metadata-item">
+              <label>Estado:</label>
+              <span class="private-badge">Privado</span>
+            </div>
+          }
+        </div>
+
+        @if (document.description) {
+          <div class="description-box">
+            <label>Descripción:</label>
+            <p>{{ document.description }}</p>
+          </div>
+        }
+      </div>
+
+      <!-- Sección de acceso si está disponible -->
+      @if (accessLogs.length > 0) {
+        <div class="preview-section access-log-section">
+          <h3>Registro de Acceso</h3>
+          @if (isLoadingLogs) {
+            <p class="loading-text">Cargando...</p>
+          } @else {
+            <div class="access-log-list">
+              @for (log of accessLogs; track log.documentId + log.userId + log.accessDate) {
+                <div class="log-entry">
+                  <span class="log-action">{{ getAccessActionLabel(log.action) }}</span>
+                  <span class="log-user">{{ log.userName }}</span>
+                  <span class="log-datetime">{{ log.accessDate | date: 'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Footer con acciones -->
+    <div class="preview-footer">
+      @if (isPdfFile()) {
+        <p class="pdf-info">
+          Haz clic en "Descargar" para ver este archivo PDF
+        </p>
+      }
+      <button class="btn btn-primary" (click)="downloadFile()">
+        ⬇️ Descargar Archivo
+      </button>
+      <button class="btn btn-secondary" (click)="close()">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>

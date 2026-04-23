@@ -1,0 +1,35 @@
+<div class="modal-overlay" (click)="cancel()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <h2 class="modal-title">Confirmar eliminación</h2>
+
+    <p class="modal-message">
+      ¿Estás seguro de que deseas eliminar a <strong>{{ dependentName }}</strong>?
+    </p>
+
+    <p class="modal-warning">
+      Advertencia: Esta acción no se puede deshacer.
+    </p>
+
+    @if (error) {
+      <div class="error-message">
+        <span class="error-icon">!</span>
+        {{ error }}
+      </div>
+    }
+
+    <div class="modal-actions">
+      <button type="button"
+              class="btn btn-secondary"
+              (click)="cancel()"
+              [disabled]="loading">
+        Cancelar
+      </button>
+      <button type="button"
+              class="btn btn-danger"
+              (click)="confirm()"
+              [disabled]="loading">
+        {{ loading ? 'Eliminando...' : 'Eliminar' }}
+      </button>
+    </div>
+  </div>
+</div>

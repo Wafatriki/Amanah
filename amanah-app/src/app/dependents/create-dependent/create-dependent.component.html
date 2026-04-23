@@ -1,0 +1,148 @@
+<div class="create-wrapper">
+  <div class="create-container">
+    <!-- Header with back button -->
+    <div class="form-header">
+      <button class="back-btn" (click)="cancel()" aria-label="Volver">
+        <span class="back-icon">←</span>
+      </button>
+      <img src="assets/logos/amanah-logo.svg" alt="Amanah Logo" class="header-logo">
+      <div class="header-spacer"></div>
+    </div>
+
+    <!-- Form card -->
+    <div class="form-card">
+      <h2 class="form-title">Crear Perfil de Dependiente</h2>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <!-- Error Message -->
+        @if (error) {
+          <div class="error-message">
+            <span class="error-icon">!</span>
+            {{ error }}
+          </div>
+        }
+
+        <!-- Información Básica Section -->
+        <div class="form-section">
+          <h3 class="section-title">Información básica</h3>
+
+          <div class="section-content">
+            <!-- Image Upload -->
+            <div class="form-group image-upload">
+              <label for="profile-image">Foto de perfil</label>
+              <div class="image-upload-wrapper">
+                <div class="image-preview-container">
+                  @if (imagePreview) {
+                    <div class="image-preview">
+                      <img [src]="imagePreview" alt="Preview" class="image">
+                    </div>
+                  } @else {
+                    <div class="image-placeholder">
+                      <img src="/assets/icons/usuario.png" alt="Photo placeholder" class="placeholder-icon">
+                    </div>
+                  }
+                </div>
+                @if (isUploadingImage) {
+                  <div class="upload-progress">
+                    <p>Subiendo imagen...</p>
+                    <div class="progress-bar">
+                      <div class="progress-fill"></div>
+                    </div>
+                  </div>
+                } @else {
+                  <button type="button"
+                          class="upload-btn"
+                          (click)="fileInput.click()">
+                    Seleccionar foto
+                  </button>
+                }
+                <input type="file"
+                       #fileInput
+                       accept="image/jpeg,image/png"
+                       (change)="onFileSelected($event)"
+                       [disabled]="isUploadingImage"
+                       style="display: none;">
+              </div>
+            </div>
+
+            <!-- Name Field -->
+            <div class="form-group">
+              <label for="name">Nombre *</label>
+              <input type="text"
+                     id="name"
+                     formControlName="name"
+                     class="form-input"
+                     placeholder="Nombre completo"
+                     [class.error]="form.get('name')?.invalid && form.get('name')?.touched">
+              @if (form.get('name')?.invalid && form.get('name')?.touched) {
+                <span class="error-text">
+                  {{ getNameError() }}
+                </span>
+              }
+            </div>
+
+            <!-- Age Field -->
+            <div class="form-group">
+              <label for="age">Edad *</label>
+              <input type="number"
+                     id="age"
+                     formControlName="age"
+                     class="form-input"
+                     placeholder="Edad"
+                     min="0"
+                     max="150"
+                     [class.error]="form.get('age')?.invalid && form.get('age')?.touched">
+              @if (form.get('age')?.invalid && form.get('age')?.touched) {
+                <span class="error-text">
+                  {{ getAgeError() }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Medical Conditions Section -->
+        <div class="form-section">
+          <h3 class="section-title">Condiciones médicas</h3>
+
+          <div class="section-content">
+            <div class="form-group">
+              <label for="medicalConditions">Condiciones médicas</label>
+              <textarea id="medicalConditions"
+                        formControlName="medicalConditions"
+                        class="form-input textarea"
+                        placeholder="Ej: Diabetes, Hipertensión&#10;(separadas por comas)"
+                        rows="3"></textarea>
+              @if (form.get('medicalConditions')?.invalid && form.get('medicalConditions')?.touched) {
+                <span class="error-text">
+                  {{ getMedicalConditionsError() }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="form-actions">
+          <button type="button"
+                  class="btn btn-secondary"
+                  (click)="cancel()"
+                  [disabled]="loading || isUploadingImage">
+            Cancelar
+          </button>
+          <button type="submit"
+                  class="submit-btn"
+                  [disabled]="loading || form.invalid || isUploadingImage">
+            @if (loading) {
+              Creando...
+            } @else if (isUploadingImage) {
+              Subiendo imagen...
+            } @else {
+              Crear dependiente
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

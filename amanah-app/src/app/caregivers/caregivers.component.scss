@@ -1,0 +1,755 @@
+.caregivers-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #ffffff;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+// Page Header
+.caregivers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.page-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #333333;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #666666;
+  margin: 0;
+  font-weight: 400;
+}
+
+// Content
+.content {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 32px 20px;
+}
+
+// Empty State
+.no-dependent-section,
+.loading-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+}
+
+.empty-state {
+  text-align: center;
+  max-width: 400px;
+
+  h2 {
+    margin: 0 0 12px 0;
+    font-size: 24px;
+    color: #333;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0 0 28px 0;
+    color: #666;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .select-btn {
+    padding: 12px 28px;
+    background: #B8A5D6;
+    color: #1A1A1A;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(184, 165, 214, 0.3);
+    transition: all 0.3s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(155, 89, 182, 0.4);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+.loading-section {
+  flex-direction: column;
+
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #e0e0e0;
+    border-top-color: #B8A5D6;
+    border-right-color: #B8A5D6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: #666;
+    font-size: 16px;
+    font-weight: 500;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Error Message
+.error-message {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-weight: 500;
+
+  p {
+    margin: 0;
+  }
+}
+
+// ==========================
+// CAREGIVERS GRID CARDS
+// ==========================
+
+.caregivers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+
+  .caregiver-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-4px);
+
+      .remove-btn {
+        opacity: 1;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid #9b59b6;
+      outline-offset: 2px;
+    }
+
+    // Top Section: Avatar & Role Badge
+    .card-top {
+      position: relative;
+      padding: 24px 20px 20px;
+      text-align: center;
+      background: rgba(184, 165, 214, 0.08);
+
+      .caregiver-avatar {
+        margin-bottom: 12px;
+
+        .avatar-image {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          object-fit: cover;
+          display: block;
+          margin: 0 auto;
+          box-shadow: 0 4px 12px rgba(184, 165, 214, 0.25);
+        }
+
+        .avatar-circle {
+          width: 72px;
+          height: 72px;
+          border-radius: 50%;
+          background: #B8A5D6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #1A1A1A;
+          font-weight: 700;
+          font-size: 28px;
+          margin: 0 auto;
+          box-shadow: 0 4px 12px rgba(184, 165, 214, 0.25);
+        }
+      }
+
+      .role-badge {
+        display: none;
+      }
+    }
+
+    // Middle Section: Name
+    .card-middle {
+      padding: 16px 20px 8px;
+      text-align: center;
+
+      h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+        word-break: break-word;
+      }
+    }
+
+    // Bottom Section: Email & Role
+    .card-bottom {
+      padding: 8px 20px 16px;
+      text-align: center;
+      flex: 1;
+
+      .email {
+        margin: 0 0 8px 0;
+        font-size: 13px;
+        color: #666;
+        word-break: break-all;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      .role-text {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 8px 14px;
+        border-radius: 12px;
+        display: inline-block;
+        transition: all 0.3s;
+
+        &.role-primary {
+          background: #e3f2fd;
+          color: #1565c0;
+          border-left: 3px solid #1565c0;
+        }
+
+        &.role-collaborative {
+          background: #f3e5f5;
+          color: #7b1fa2;
+          border-left: 3px solid #7b1fa2;
+        }
+
+        &.role-invited {
+          background: #fff3e0;
+          color: #e65100;
+          border-left: 3px solid #e65100;
+        }
+      }
+    }
+
+    // Actions
+    .card-actions {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+
+      .menu-btn {
+        background: rgba(184, 165, 214, 0.2);
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 8px 12px;
+        opacity: 1;
+        transition: all 0.3s;
+        border-radius: 8px;
+        color: #666;
+        font-weight: bold;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+          background: #B8A5D6;
+          color: #1A1A1A;
+          transform: scale(1.1);
+        }
+
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+
+      .dropdown-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        min-width: 180px;
+        z-index: 100;
+        overflow: hidden;
+
+        .dropdown-section {
+          padding: 8px 0;
+          border-bottom: 1px solid #e0e0e0;
+
+          .dropdown-label {
+            display: block;
+            padding: 8px 16px;
+            font-size: 11px;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            color: #333;
+
+            &:hover {
+              background: #f5f5f5;
+            }
+          }
+        }
+
+        .dropdown-item {
+          display: block;
+          width: 100%;
+          padding: 12px 16px;
+          border: none;
+          background: transparent;
+          text-align: left;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s;
+          color: #333;
+
+          &:hover {
+            background: #f5f5f5;
+          }
+
+          &.delete-item {
+            color: #d32f2f;
+            border-top: 1px solid #e0e0e0;
+
+            &:hover {
+              background: #ffebee;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Empty caregivers state
+  .empty-caregivers {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 40px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    p {
+      margin: 0;
+      font-size: 15px;
+      color: #666;
+
+      &.subtitle {
+        margin-top: 8px;
+        font-size: 13px;
+        color: #999;
+      }
+    }
+  }
+}
+
+// ==========================
+// INVITE FOOTER & FORM
+// ==========================
+
+.invite-footer {
+  text-align: center;
+  margin-bottom: 32px;
+
+  .invite-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: #B8A5D6;
+    color: #1A1A1A;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(184, 165, 214, 0.3);
+    transition: all 0.3s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(184, 165, 214, 0.4);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    .btn-text {
+      font-weight: 600;
+    }
+  }
+}
+
+.invite-form-container {
+  margin-top: 32px;
+  animation: slideDown 0.3s ease-out;
+
+  .invite-form {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f0f0f0;
+
+    h3 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 11px 14px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        font-family: inherit;
+        box-sizing: border-box;
+        transition: all 0.2s;
+        background: white;
+
+        &:focus {
+          outline: none;
+          border-color: #B8A5D6;
+          box-shadow: 0 0 0 3px rgba(184, 165, 214, 0.1);
+          background: #faf8ff;
+        }
+
+        &::placeholder {
+          color: #aaa;
+        }
+      }
+
+      select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 20px;
+        padding-right: 36px;
+      }
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+
+      button {
+        flex: 1;
+        padding: 11px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-1px);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        &:active:not(:disabled) {
+          transform: translateY(0);
+        }
+      }
+
+      .submit-btn {
+        background: #B8A5D6;
+        color: #1A1A1A;
+        box-shadow: 0 2px 8px rgba(184, 165, 214, 0.2);
+
+        &:hover:not(:disabled) {
+          box-shadow: 0 4px 12px rgba(184, 165, 214, 0.3);
+        }
+      }
+
+      .cancel-btn {
+        background: #f0f0f0;
+        color: #333;
+
+        &:hover {
+          background: #e0e0e0;
+        }
+      }
+    }
+
+    .success-message,
+    .error-message-form {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .error-message-form {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .invitation-link-section {
+      margin-top: 24px;
+      padding: 16px;
+      background: #f8f9ff;
+      border: 1px solid #e0d5f0;
+      border-radius: 8px;
+
+      .link-label {
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      .link-container {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+
+        .link-input {
+          flex: 1;
+          padding: 10px 12px;
+          border: 1px solid #ddd;
+          border-radius: 6px;
+          font-size: 12px;
+          font-family: 'Courier New', monospace;
+          background: white;
+          color: #555;
+          word-break: break-all;
+        }
+
+        .copy-btn {
+          padding: 10px 16px;
+          background: #B8A5D6;
+          color: #1A1A1A;
+          border: none;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s;
+
+          &:hover {
+            background: #a995cc;
+            box-shadow: 0 2px 6px rgba(184, 165, 214, 0.4);
+          }
+
+          &:active {
+            transform: scale(0.98);
+          }
+        }
+      }
+
+      .link-note {
+        margin: 0;
+        font-size: 12px;
+        color: #666;
+        font-style: italic;
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ==========================
+// RESPONSIVE
+// ==========================
+
+@media (max-width: 768px) {
+  .page-header {
+    padding: 24px 16px;
+
+    .header-content h1 {
+      font-size: 26px;
+    }
+  }
+
+  .content {
+    padding: 24px 16px;
+  }
+
+  .caregivers-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+
+    .empty-caregivers {
+      padding: 40px 20px;
+    }
+  }
+
+  .invite-form-container .invite-form {
+    padding: 20px;
+
+    .form-actions {
+      flex-direction: column;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: 20px 12px;
+
+    .header-content h1 {
+      font-size: 22px;
+    }
+  }
+
+  .content {
+    padding: 16px 12px;
+  }
+
+  .caregivers-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .invite-footer {
+    margin-bottom: 20px;
+
+    .invite-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  .invite-form-container .invite-form {
+    padding: 16px;
+    border-radius: 8px;
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-actions {
+      margin-top: 16px;
+    }
+  }
+}
+
+// Non-primary caregiver message
+.non-primary-message {
+  text-align: center;
+  padding: 20px;
+  background: #f3e5f5;
+  border: 1px dashed #7b1fa2;
+  border-radius: 8px;
+  margin-top: 20px;
+
+  p {
+    margin: 0;
+    color: #7b1fa2;
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
+

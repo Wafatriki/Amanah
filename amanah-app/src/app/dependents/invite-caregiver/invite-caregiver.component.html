@@ -1,0 +1,40 @@
+<div class="invite-section">
+  <h3>Invitar Cuidador</h3>
+
+  <div *ngIf="isLoadingDependent" class="loading">
+    <p>Verificando acceso...</p>
+  </div>
+
+  <form *ngIf="!isLoadingDependent && !errorMessage" (ngSubmit)="sendInvitation()" class="invite-form">
+    <!-- Email -->
+    <div class="form-group">
+      <label for="email">Email del cuidador</label>
+      <input
+        id="email"
+        type="email"
+        [(ngModel)]="invitedEmail"
+        name="email"
+        placeholder="ejemplo@email.com"
+        required
+      />
+    </div>
+
+    <!-- Rol -->
+    <div class="form-group">
+      <label for="role">Rol</label>
+      <select [(ngModel)]="role" name="role" id="role">
+        <option value="collaborative_caregiver">Cuidador Colaborativo</option>
+        <option value="primary_caregiver">Cuidador Principal</option>
+      </select>
+    </div>
+
+    <!-- Botón -->
+    <button type="submit" [disabled]="loading">
+      {{ loading ? 'Enviando...' : 'Enviar Invitación' }}
+    </button>
+  </form>
+
+  <!-- Mensajes -->
+  <p *ngIf="successMessage" class="success">Éxito: {{ successMessage }}</p>
+  <p *ngIf="errorMessage" class="error">Error: {{ errorMessage }}</p>
+</div>

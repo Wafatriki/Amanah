@@ -1,0 +1,261 @@
+<div class="calendar-container">
+  <!-- Header -->
+  <div class="calendar-header">
+    <div class="header-content">
+      <h1 class="page-title">Calendario</h1>
+      <p class="page-subtitle">Gestiona eventos, citas y recordatorios</p>
+    </div>
+    @if (canCreateEvent()) {
+      <button class="btn-create-event" (click)="createNewEvent()">
+        + Nuevo evento
+      </button>
+    }
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <button class="toggle-filters-btn" (click)="toggleFilters()">
+      <span class="icon">▼</span>
+      Filtros
+    </button>
+
+    @if (showFilters) {
+      <div class="filters-panel">
+        <button
+          class="filter-btn"
+          [class.active]="selectedEventType === 'all'"
+          (click)="filterByType('all')"
+        >
+          Todos
+        </button>
+        <button
+          class="filter-btn task-filter"
+          [class.active]="selectedEventType === 'task'"
+          (click)="filterByType('task')"
+        >
+          <span class="color-dot" style="background-color: #E8D4F1;"></span>
+          Tareas
+        </button>
+        <button
+          class="filter-btn appointment-filter"
+          [class.active]="selectedEventType === 'appointment'"
+          (click)="filterByType('appointment')"
+        >
+          <span class="color-dot" style="background-color: #ADD8E6;"></span>
+          Citas
+        </button>
+        <button
+          class="filter-btn other-filter"
+          [class.active]="selectedEventType === 'other'"
+          (click)="filterByType('other')"
+        >
+          <span class="color-dot" style="background-color: #FFFACD;"></span>
+          Eventos
+        </button>
+      </div>
+    }
+  </div>
+
+  <!-- Leyenda de tipos de eventos -->
+  <div class="event-legend">
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #E8D4F1;"></span>
+      <span class="legend-label">Tareas</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #C8E6FF;"></span>
+      <span class="legend-label">Citas</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color" style="background-color: #F0E4C8;"></span>
+      <span class="legend-label">Otros</span>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  @if (loading) {
+    <div class="loading">
+      <p>Cargando calendario...</p>
+    </div>
+  } @else {
+    <div class="calendar-wrapper">
+      <full-calendar [options]="calendarOptions"></full-calendar>
+    </div>
+
+    <!-- Leyenda de colores -->
+    <div class="calendar-legend">
+      <h3 class="legend-title">Leyenda</h3>
+      <div class="legend-items">
+        <div class="legend-item">
+          <span class="legend-color" style="background-color: #B8A5D6; border: 1px solid #a491c7;"></span>
+          <span class="legend-label">Tareas</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color" style="background-color: #ADD8E6; border: 1px solid #87CEEB;"></span>
+          <span class="legend-label">Citas</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color" style="background-color: #FFFACD; border: 1px solid #DAA520;"></span>
+          <span class="legend-label">Eventos</span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Event Details Modal -->
+  <app-event-details-modal
+    [event]="selectedEvent"
+    [isOpen]="showEventModal"
+    (onClose)="closeModal()"
+    (onEdit)="editEvent($event)"
+    (onDelete)="deleteEvent($event)"
+  ></app-event-details-modal>
+
+  <!-- Task Details Modal -->
+  @if (showTaskModal && selectedTask) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ selectedTask.title }}</h3>
+          <button class="close-btn" (click)="closeModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Priority and Status Badges -->
+          <div class="task-priority-container">
+            <span class="priority-badge" [ngClass]="selectedTask.priority">
+              {{ selectedTask.priority === 'high' ? 'Alta' : selectedTask.priority === 'medium' ? 'Media' : 'Baja' }}
+            </span>
+            <span class="status-badge" [ngClass]="selectedTask.status">
+              {{ selectedTask.status === 'pending' ? 'Pendiente' : 'Completada' }}
+            </span>
+          </div>
+
+          <!-- Description -->
+          @if (selectedTask.description) {
+            <div class="task-section">
+              <h3>Descripción</h3>
+              <p>{{ selectedTask.description }}</p>
+            </div>
+          }
+
+          <!-- Due Date -->
+          @if (selectedTask.dueDate) {
+            <div class="task-section">
+              <h3>Fecha de vencimiento</h3>
+              <p>{{ selectedTask.dueDate | date:'dd/MM/yy' }}</p>
+              @if (selectedTask.dueTime) {
+                <p>{{ selectedTask.dueTime }}</p>
+              }
+            </div>
+          }
+
+          <!-- Assigned To -->
+          @if (selectedTask.assignedTo && selectedTask.assignedTo.length > 0) {
+            <div class="task-section">
+              <h3>Asignado a</h3>
+              <p>
+                @for (assignee of selectedTask.assignedTo; track assignee.userId; let last = $last) {
+                  <span>{{ assignee.name }}<span>@if (!last) {, }</span></span>
+                }
+              </p>
+            </div>
+          }
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="closeModal()">Cerrar</button>
+          <button class="btn-edit" (click)="editTaskDirect()">Editar</button>
+          <button class="btn-delete" (click)="deleteTask(selectedTask.id!)">Eliminar</button>
+          <button
+            class="btn-primary"
+            (click)="markTaskComplete(selectedTask.id!)"
+            [disabled]="selectedTask.status === 'completed'"
+          >
+            Marcar completada
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Appointment Details Modal -->
+  @if (showAppointmentModal && selectedAppointment) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ selectedAppointment.specialty }} - {{ selectedAppointment.doctor }}</h3>
+          <button class="close-btn" (click)="closeModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Status Badge -->
+          <div class="appointment-status-container">
+            <span class="status-badge" [ngClass]="selectedAppointment.status">
+              {{ selectedAppointment.status === 'scheduled' ? 'Programada' : selectedAppointment.status === 'completed' ? 'Completada' : 'Cancelada' }}
+            </span>
+          </div>
+
+          <!-- Appointment Details -->
+          <div class="appointment-section">
+            <h3>Detalles de la Cita</h3>
+            <div class="detail-row">
+              <span class="detail-label">Fecha:</span>
+              <span class="detail-value">{{ selectedAppointment.date | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Hora:</span>
+              <span class="detail-value">{{ selectedAppointment.time }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Médico:</span>
+              <span class="detail-value">{{ selectedAppointment.doctor || 'No especificado' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Ubicación:</span>
+              <span class="detail-value">{{ selectedAppointment.location }}</span>
+            </div>
+          </div>
+
+          <!-- Reason -->
+          @if (selectedAppointment.reason) {
+            <div class="appointment-section">
+              <h3>Motivo</h3>
+              <p>{{ selectedAppointment.reason }}</p>
+            </div>
+          }
+
+          <!-- Notes -->
+          @if (selectedAppointment.notes) {
+            <div class="appointment-section">
+              <h3>Notas Previas</h3>
+              <p>{{ selectedAppointment.notes }}</p>
+            </div>
+          }
+
+          <!-- Post-Appointment Notes -->
+          @if (selectedAppointment.postAppointmentNotes && selectedAppointment.postAppointmentNotes.length > 0) {
+            <div class="appointment-section">
+              <h3>Notas Post-Cita</h3>
+              @for (note of selectedAppointment.postAppointmentNotes; track note.date) {
+                <div class="note-item">
+                  <div class="note-meta">
+                    <strong>{{ note.userName }}</strong>
+                    <span class="note-date">{{ note.date | date:'dd/MM/yyyy HH:mm' }}</span>
+                  </div>
+                  <p>{{ note.text }}</p>
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="closeModal()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

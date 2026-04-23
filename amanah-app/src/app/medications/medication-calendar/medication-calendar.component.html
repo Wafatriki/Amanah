@@ -1,0 +1,150 @@
+<div class="medication-calendar-container">
+  <div class="calendar-header">
+    <button (click)="previousMonth()" class="nav-btn">‹</button>
+    <div class="month-year">
+      {{ monthName }}
+      <button (click)="goToday()" class="today-btn">Hoy</button>
+    </div>
+    <button (click)="nextMonth()" class="nav-btn">›</button>
+  </div>
+
+  <div class="weekdays">
+    <div *ngFor="let day of weekDays; trackBy: trackByScheduleIndex" class="weekday">{{ day }}</div>
+  </div>
+
+  <div class="calendar-grid">
+    <div
+      *ngFor="let day of calendarDays; trackBy: trackByDayDate"
+      class="calendar-day"
+      [class.other-month]="!day.isCurrentMonth"
+      [class.today]="isToday(day)"
+      [class.weekend]="isWeekend(day)">
+
+      <div class="day-header">
+        <span class="day-number">{{ day.day }}</span>
+        <span *ngIf="day.total > 0" class="schedule-count">{{ day.total }}</span>
+      </div>
+
+      <div class="day-content">
+        <div *ngIf="day.schedules.length === 0" class="no-schedules">—</div>
+
+        <div *ngIf="day.schedules.length > 0" class="schedules-list">
+          <div
+            *ngFor="let schedule of day.schedules | slice:0:2; trackBy: trackByScheduleIndex"
+            class="schedule-item"
+            (click)="showScheduleDetails(schedule)"
+            role="button"
+            tabindex="0">
+            <span class="time">{{ schedule.time }}</span>
+            <span class="med-name">{{ schedule.medication }}</span>
+          </div>
+          <div
+            *ngIf="day.schedules.length > 2"
+            class="more-schedules"
+            (click)="showDaySchedules(day)"
+            role="button"
+            tabindex="0">
+            +{{ day.schedules.length - 2 }}
+          </div>
+        </div>
+
+        <div *ngIf="day.total > 0" class="completion-bar">
+          <div class="bar-fill" [style.width.%]="getCompletionPercentage(day)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="calendar-legend">
+    <div class="legend-item">
+      <div class="legend-color today"></div>
+      <span>Hoy</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color weekend"></div>
+      <span>Fin de semana</span>
+    </div>
+    <div class="legend-item">
+      <span class="info-text">Los números indican tomas programadas</span>
+    </div>
+  </div>
+
+  <!-- Schedule Details Modal -->
+  <div *ngIf="selectedSchedule && selectedMedicationDetails" class="schedule-details-overlay" (click)="closeScheduleDetails()">
+    <div class="schedule-details-panel" (click)="$event.stopPropagation()">
+      <div class="details-header">
+        <h3>{{ selectedSchedule.medication }}</h3>
+        <button class="close-btn" (click)="closeScheduleDetails()">×</button>
+      </div>
+
+      <div class="details-content">
+        <div class="detail-item">
+          <span class="label">Hora:</span>
+          <span class="value">{{ selectedSchedule.time }}</span>
+        </div>
+
+        <div class="detail-item">
+          <span class="label">Dosis:</span>
+          <span class="value">{{ selectedSchedule.dose || 'No especificada' }}</span>
+        </div>
+
+        <div class="detail-item">
+          <span class="label">Presentación:</span>
+          <span class="value">{{ selectedSchedule.presentation || 'No especificada' }}</span>
+        </div>
+
+        <div *ngIf="selectedMedicationDetails.indication" class="detail-item">
+          <span class="label">Indicación:</span>
+          <span class="value">{{ selectedMedicationDetails.indication }}</span>
+        </div>
+
+        <div *ngIf="selectedMedicationDetails.prescribedBy" class="detail-item">
+          <span class="label">Prescrito por:</span>
+          <span class="value">{{ selectedMedicationDetails.prescribedBy }}</span>
+        </div>
+
+
+
+        <div class="detail-item date-range">
+          <span class="label">Vigencia:</span>
+          <div class="date-info">
+            <span>Desde: {{ selectedMedicationDetails.startDate | date: 'dd/MM/yyyy' }}</span>
+            <span *ngIf="selectedMedicationDetails.endDate">Hasta: {{ selectedMedicationDetails.endDate | date: 'dd/MM/yyyy' }}</span>
+            <span *ngIf="!selectedMedicationDetails.endDate" class="indefinite">Sin fecha de término</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day Schedules Modal -->
+  <div *ngIf="showDaySchedulesModal && selectedDaySchedules.length > 0" class="schedule-details-overlay" (click)="closeDaySchedules()">
+    <div class="schedule-details-panel" (click)="$event.stopPropagation()">
+      <div class="details-header">
+        <h3>Medicaciones del Día</h3>
+        <button class="close-btn" (click)="closeDaySchedules()">×</button>
+      </div>
+
+      <div class="details-content">
+        <div class="day-schedules-list">
+          <div
+            *ngFor="let schedule of selectedDaySchedules; trackBy: trackByScheduleIndex"
+            class="day-schedule-item"
+            (click)="showScheduleDetails(schedule); closeDaySchedules()"
+            role="button"
+            tabindex="0">
+            <div class="schedule-time">
+              <span class="time-badge">{{ schedule.time }}</span>
+            </div>
+            <div class="schedule-details">
+              <h4>{{ schedule.medication }}</h4>
+              <p class="dose">{{ schedule.dose }}</p>
+              <p class="presentation">{{ schedule.presentation }}</p>
+            </div>
+            <div class="arrow">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

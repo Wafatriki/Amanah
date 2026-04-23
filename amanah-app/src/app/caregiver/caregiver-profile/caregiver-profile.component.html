@@ -1,0 +1,125 @@
+<div class="caregiver-profile-container">
+  @if (loading) {
+    <div class="loading">
+      <p>Cargando...</p>
+    </div>
+  } @else if (caregiver) {
+    <!-- Header -->
+    <div class="caregiver-profile-header">
+      <div class="header-content">
+        <h1 class="page-title">Mi Perfil</h1>
+        <p class="page-subtitle">Información personal y de contacto</p>
+      </div>
+    </div>
+
+    <!-- Profile Section -->
+    <div class="profile-section">
+      <!-- Avatar -->
+      <div class="avatar-container">
+        @if (caregiver.image) {
+          <img [src]="caregiver.image" alt="{{ caregiver.name }}" class="avatar">
+        } @else {
+          <div class="avatar-placeholder">
+            {{ caregiver.name.charAt(0).toUpperCase() }}
+          </div>
+        }
+      </div>
+
+      <!-- Name and Email -->
+      <h1 class="caregiver-name">{{ caregiver.name }}</h1>
+      <p class="email-subtitle">{{ caregiver.email }}</p>
+    </div>
+
+    <!-- Información básica -->
+    <div class="info-section">
+      <h2 class="section-title">Información básica</h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="label">Nombre</span>
+          <span class="value">{{ caregiver.name }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Email</span>
+          <span class="value">{{ caregiver.email }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Teléfono</span>
+          @if (caregiver.phone) {
+            <span class="value">{{ caregiver.phone }}</span>
+          } @else if (isOwnProfile) {
+            <span class="value add-phone">Añade tu número de teléfono</span>
+          } @else {
+            <span class="value">No disponible</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Personas que cuida (solo para el propietario) -->
+    @if (isOwnProfile && dependents && dependents.length > 0) {
+      <div class="caregivers-section">
+        <h2 class="section-title">Personas que cuidas</h2>
+        <div class="caregivers-list">
+          @for (dependent of dependents; track dependent.id) {
+            <div class="caregiver-item">
+              <div class="caregiver-avatar">
+                @if (dependent.image) {
+                  <img [src]="dependent.image" alt="{{ dependent.name }}" class="avatar-image">
+                } @else {
+                  {{ dependent.name.charAt(0).toUpperCase() }}
+                }
+              </div>
+              <div class="caregiver-info">
+                <p class="caregiver-name">{{ dependent.name }}</p>
+                <p class="caregiver-role">{{ dependent.age }} años</p>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      @if (isOwnProfile) {
+        <button class="btn btn-primary" (click)="editProfile()">
+          Editar perfil
+        </button>
+        <button class="btn btn-secondary" (click)="openChangePasswordModal()">
+          Cambiar contraseña
+        </button>
+        <button class="btn btn-delete-account" (click)="openDeleteAccountModal()">
+          Eliminar cuenta
+        </button>
+        <button class="btn btn-danger" (click)="logout()">
+          Cerrar sesión
+        </button>
+      } @else {
+        <button class="btn btn-secondary" (click)="goBack()">
+          ← Volver
+        </button>
+      }
+    </div>
+
+    <!-- Modal de cambiar contraseña -->
+    @if (showChangePasswordModal) {
+      <app-change-password
+        (close)="closeChangePasswordModal()"
+        (success)="onPasswordChanged()"
+      ></app-change-password>
+    }
+
+    <!-- Modal de eliminar cuenta -->
+    @if (showDeleteAccountModal) {
+      <app-delete-account
+        (closeModal)="closeDeleteAccountModal()"
+        (success)="closeDeleteAccountModal()"
+      ></app-delete-account>
+    }
+  } @else {
+    <div class="error-state">
+      <p>No se encontró el perfil</p>
+      <button class="btn btn-primary" (click)="goBack()">Volver</button>
+    </div>
+  }
+</div>

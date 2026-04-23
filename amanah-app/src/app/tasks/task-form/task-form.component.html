@@ -1,0 +1,238 @@
+<div class="task-form-container">
+  <div class="form-header">
+    <h1 class="form-title">{{ isEditMode ? 'Editar tarea' : 'Crear nueva tarea' }}</h1>
+    <p class="form-subtitle">{{ isEditMode ? 'Actualiza los detalles de la tarea' : 'Crea una nueva tarea para el dependiente' }}</p>
+  </div>
+
+  <div class="form-wrapper" *ngIf="!loading">
+    <form [formGroup]="taskForm" (ngSubmit)="onSubmit()">
+      <!-- Título -->
+      <div class="form-group">
+        <label for="title" class="form-label">Título de la tarea *</label>
+        <input
+          id="title"
+          formControlName="title"
+          type="text"
+          class="form-input"
+          placeholder="p.ej. Dar medicinas, Hacer ejercicio"
+          [class.error]="taskForm.get('title')?.invalid && taskForm.get('title')?.touched"
+        />
+        <span class="error-message" *ngIf="taskForm.get('title')?.invalid && taskForm.get('title')?.touched">
+          El título es requerido (mínimo 3 caracteres)
+        </span>
+      </div>
+
+      <!-- Descripción -->
+      <div class="form-group">
+        <label for="description" class="form-label">Descripción</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          class="form-textarea"
+          rows="4"
+          placeholder="Detalles adicionales sobre la tarea..."
+        ></textarea>
+      </div>
+
+      <!-- Fecha y Hora -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="dueDate" class="form-label">Fecha de vencimiento *</label>
+          <input
+            id="dueDate"
+            formControlName="dueDate"
+            type="date"
+            class="form-input"
+            [class.error]="taskForm.get('dueDate')?.invalid && taskForm.get('dueDate')?.touched"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="dueTime" class="form-label">Hora</label>
+          <input
+            id="dueTime"
+            formControlName="dueTime"
+            type="time"
+            class="form-input"
+          />
+        </div>
+      </div>
+
+      <!-- Prioridad -->
+      <div class="form-group">
+        <label for="priority" class="form-label">Prioridad *</label>
+        <select formControlName="priority" id="priority" class="form-select">
+          <option *ngFor="let priority of priorities" [value]="priority.id">
+            {{ priority.label }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Asignación de cuidadores -->
+      <div class="form-group">
+        <label class="form-label">Asignar a cuidadores *</label>
+        <div class="caregivers-list">
+          <div
+            *ngFor="let caregiver of caregivers"
+            class="caregiver-checkbox"
+            (click)="toggleAssignee(caregiver.userId)"
+          >
+            <input
+              type="checkbox"
+              [checked]="isAssigned(caregiver.userId)"
+              [value]="caregiver.userId"
+              class="checkbox-input"
+            />
+            <span class="caregiver-name">{{ caregiver.name }}</span>
+            <span class="caregiver-role">{{ caregiver.role === 'primary_caregiver' ? 'Cuidador principal' : 'Cuidador' }}</span>
+          </div>
+        </div>
+        <span class="error-message" *ngIf="taskForm.get('assignedTo')?.invalid && taskForm.get('assignedTo')?.touched">
+          Debes asignar la tarea a al menos un cuidador
+        </span>
+      </div>
+
+      <!-- Notas -->
+      <div class="form-group">
+        <label for="notes" class="form-label">Notas</label>
+        <textarea
+          id="notes"
+          formControlName="notes"
+          class="form-textarea"
+          rows="3"
+          placeholder="Notas adicionales..."
+        ></textarea>
+      </div>
+
+      <!-- Reminder Configuration -->
+      <div [formGroupName]="'reminder'" class="reminder-section">
+        <div class="reminder-header">
+
+          <h4>Recordatorio de Tarea</h4>
+          <span class="reminder-badge" *ngIf="taskForm.get('reminder.enabled')?.value" [ngClass]="'enabled'">✓ Activo</span>
+        </div>
+
+        <div class="reminder-content">
+          <div class="reminder-toggle">
+            <label for="reminder-enabled" class="toggle-label">
+              <input
+                id="reminder-enabled"
+                type="checkbox"
+                formControlName="enabled"
+                class="toggle-input"
+              />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Habilitar recordatorio de tarea</span>
+            </label>
+          </div>
+
+          <div class="reminder-time-selector" *ngIf="taskForm.get('reminder.enabled')?.value">
+            <p class="reminder-time-label">⏰ ¿Cuándo recibir el recordatorio?</p>
+            <select id="reminder-minutes" formControlName="minutesBefore" class="reminder-select">
+              <option value="5">5 minutos antes</option>
+              <option value="10">10 minutos antes</option>
+              <option value="15">15 minutos antes</option>
+              <option value="30">30 minutos antes</option>
+              <option value="60">1 hora antes</option>
+              <option value="120">2 horas antes</option>
+              <option value="1440">1 día antes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recurrencia -->
+      <div class="form-group checkbox-group">
+        <label class="form-label">Recurrencia</label>
+
+        <div class="checkbox-item">
+          <input
+            id="isRecurring"
+            type="checkbox"
+            formControlName="isRecurring"
+            (change)="toggleRecurrence()"
+            class="checkbox-input"
+          />
+          <label for="isRecurring" class="checkbox-label">¿Es una tarea recurrente?</label>
+        </div>
+
+        <div *ngIf="taskForm.get('isRecurring')?.value" class="recurrence-section">
+          <!-- Frecuencia -->
+          <div class="form-group">
+            <label for="recurrenceFrequency" class="form-label">¿Cuándo se repite?</label>
+            <select formControlName="recurrenceFrequency" id="recurrenceFrequency" class="form-select" (change)="onRecurrenceFrequencyChange()">
+              <option value="daily">Diariamente</option>
+              <option value="weekly">Días específicos de la semana</option>
+              <option value="monthly">Mensualmente</option>
+            </select>
+          </div>
+
+          <!-- Días de la semana (si es semanal) -->
+          <div *ngIf="taskForm.get('recurrenceFrequency')?.value === 'weekly'" class="days-selection">
+            <label class="form-label">Selecciona los días:</label>
+            <div class="days-grid">
+              <div *ngFor="let day of daysOfWeek" class="day-checkbox">
+                <input
+                  [id]="'day_' + day.value"
+                  type="checkbox"
+                  [checked]="isRecurrenceDaySelected(day.value)"
+                  (change)="toggleRecurrenceDay(day.value)"
+                  class="checkbox-input"
+                />
+                <label [for]="'day_' + day.value" class="day-label">{{ day.label }}</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Duración -->
+          <div class="form-group">
+            <label for="recurrenceEndsAfterDays" class="form-label">Finaliza después de (días)</label>
+            <input
+              id="recurrenceEndsAfterDays"
+              formControlName="recurrenceEndsAfterDays"
+              type="number"
+              class="form-input"
+              placeholder="Dejar en blanco para sin límite"
+            />
+            <small class="form-help">Deja en blanco si la tarea se repite indefinidamente</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="form-actions">
+        <button type="submit" class="btn-submit" [disabled]="!taskForm.valid || submitting">
+          {{ submitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear') }} tarea
+        </button>
+        <button type="button" class="btn-cancel" (click)="cancel()">
+          Cancelar
+        </button>
+      </div>
+
+      <!-- Modal para cambio de instancia -->
+      <div class="instance-modal-overlay" *ngIf="showInstanceModal">
+        <div class="instance-modal">
+          <h3 class="modal-title">Cambiar esta tarea</h3>
+          <p class="modal-text">
+            Esta es una tarea recurrente. ¿Qué deseas hacer?
+          </p>
+          <div class="modal-options">
+            <button type="button" class="btn btn-option-this" (click)="applyToThisInstanceOnly()">
+              Cambiar solo esta instancia
+            </button>
+            <button type="button" class="btn btn-option-all" (click)="applyToAllRecurrences()">
+              Cambiar todas las recurrencias
+            </button>
+          </div>
+          <button type="button" class="btn-close" (click)="cancelInstanceChange()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="loading" *ngIf="loading">
+    <p>Cargando...</p>
+  </div>
+</div>

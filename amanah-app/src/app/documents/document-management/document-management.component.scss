@@ -1,0 +1,145 @@
+$primary-color: #1e88e5;
+$primary-dark: #1565c0;
+$primary-light: #bbdefb;
+$gray-light: #f9f9f9;
+$gray-border: #f0f0f0;
+$text-dark: #333333;
+$text-gray: #666666;
+
+.documents-container {
+  width: 100%;
+  padding: 20px;
+  background-color: #ffffff;
+}
+
+.documents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  gap: 20px;
+  border-bottom: 2px solid $gray-border;
+  padding-bottom: 24px;
+}
+
+.documents-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.btn-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, $primary-color, #42a5f5);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  .icon {
+    font-size: 18px;
+    font-weight: bold;
+  }
+
+  .btn-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+  }
+
+  &:hover:not(.active) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba($primary-color, 0.3);
+  }
+
+  &.active {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    }
+  }
+}
+
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: $text-gray;
+  font-size: 16px;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  p {
+    margin: 0;
+  }
+}
+
+.upload-section {
+  margin-bottom: 32px;
+  padding: 24px;
+  background-color: $gray-light;
+  border: 1px solid $gray-border;
+  border-radius: 8px;
+  animation: slideDown 0.3s ease;
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: $text-dark;
+    margin: 0 0 20px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid $primary-light;
+  }
+}
+
+.list-section {
+  background-color: $gray-light;
+  border: 1px solid $gray-border;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .documents-container {
+    padding: 16px;
+  }
+
+  .documents-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-create {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .documents-title {
+    font-size: 24px;
+  }
+}

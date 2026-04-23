@@ -1,0 +1,169 @@
+<!-- Loading state -->
+<div class="loading-container" *ngIf="loading">
+  <div class="spinner"></div>
+  <p>Cargando...</p>
+</div>
+
+<main class="main-content" *ngIf="user && !loading">
+  <!-- Sin dependientes -->
+  <div class="no-dependents-container" *ngIf="!hasDependents">
+    <div class="no-dependents-content">
+      <div class="welcome-logo">
+        <img src="/assets/logos/amanah-logo.svg" alt="Amanah" class="logo">
+      </div>
+      <h1 class="welcome-title">Bienvenido a Amanah</h1>
+      <p class="welcome-subtitle">Crea el perfil de tu primer dependiente para comenzar a gestionar su cuidado</p>
+      <button class="create-btn" (click)="createNewDependent()">Crear dependiente</button>
+    </div>
+  </div>
+
+  <!-- Con dependientes -->
+  <div class="dashboard-content" *ngIf="hasDependents">
+    <div class="container">
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+      <h1 class="page-title">Buenos días, {{ activeDependentName }}</h1>
+      <p class="page-subtitle">{{ currentDate }}</p>
+    </div>
+
+    <!-- STATS GRID -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number">{{ getStats().medications }}</div>
+        <div class="stat-label">Medicaciones hoy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ getStats().appointments }}</div>
+        <div class="stat-label">Cita próxima</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ getStats().pendingTasks }}</div>
+        <div class="stat-label">Tareas pendientes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ getStats().messages }}</div>
+        <div class="stat-label">Nuevos mensajes</div>
+      </div>
+    </div>
+
+    <!-- CONTENT GRID -->
+    <div class="content-grid">
+      <!-- MEDICACIONES DE HOY -->
+      <div class="section" *ngIf="todaysMedications.length > 0">
+        <div class="section-header">
+          <h2 class="section-title">Medicaciones de hoy</h2>
+          <a href="#" class="see-all" (click)="goToMedications(); $event.preventDefault()">Ver todas →</a>
+        </div>
+        <div class="task-list">
+          @for (medication of todaysMedications; track medication.id) {
+            <div class="task-item" [style.border-left-color]="'#a78bfa'">
+              <div class="task-icon-badge">
+                <img src="/assets/dashboard-icons/medication-icon.png" alt="Medicación" class="icon-image">
+              </div>
+              <div class="task-content">
+                <div class="task-title">{{ medication.name }}</div>
+                <div class="task-meta">
+                  <span>{{ medication.dose }}</span>
+                  <span *ngIf="medication.schedules[0]?.time">a las {{ medication.schedules[0]?.time }}</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- CITAS PRÓXIMAS / CITAS DE HOY -->
+      <div class="section" *ngIf="upcomingAppointments.length > 0">
+        <div class="section-header">
+          <h2 class="section-title">{{ hasTodayAppointments ? 'Citas de hoy' : 'Citas próximas' }}</h2>
+          <a href="#" class="see-all" (click)="goToAppointments(); $event.preventDefault()">Ver todas →</a>
+        </div>
+        <div class="task-list">
+          @for (appointment of upcomingAppointments; track appointment.id) {
+            <div class="task-item" [style.border-left-color]="'#34d399'">
+              <div class="task-icon-badge">
+                <img src="/assets/dashboard-icons/appointment-icon.png" alt="Cita" class="icon-image">
+              </div>
+              <div class="task-content">
+                <div class="task-title">{{ appointment.specialty }} - {{ appointment.doctor }}</div>
+                <div class="task-meta">
+                  <span>{{ appointment.date | date:'dd/MM/yyyy' }}</span>
+                  <span *ngIf="appointment.time">{{ appointment.time }}</span>
+                  <span *ngIf="appointment.location">{{ appointment.location }}</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- MENSAJES SIN LEER -->
+      <div class="section" *ngIf="unreadMessages.length > 0">
+        <div class="section-header">
+          <h2 class="section-title">Mensajes sin leer</h2>
+          <a href="#" class="see-all" (click)="goToChat(); $event.preventDefault()">Ver chat →</a>
+        </div>
+        <div class="task-list">
+          @for (message of unreadMessages; track message.id) {
+            <div class="task-item" [style.border-left-color]="'#f59e0b'">
+              <div class="task-icon-badge">
+                <img src="/assets/dashboard-icons/message-icon.png" alt="Mensaje" class="icon-image">
+              </div>
+              <div class="task-content">
+                <div class="task-title">{{ message.userName }}</div>
+                <div class="task-meta">
+                  <span>{{ message.text | slice:0:50 }}{{ message.text.length > 50 ? '...' : '' }}</span>
+                  <span>{{ message.timestamp | date:'HH:mm' }}</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- TAREAS DE HOY -->
+      <div class="section" *ngIf="todaysTasks.length > 0">
+        <div class="section-header">
+          <h2 class="section-title">Tareas de hoy</h2>
+          <a href="#" class="see-all" (click)="goToTasks(); $event.preventDefault()">Ver todas →</a>
+        </div>
+
+        <div class="task-list">
+          <div *ngFor="let task of todaysTasks" class="task-item" [class.completed]="task.status === 'completed'" [style.border-left-color]="getTaskPriorityColor(task.priority)">
+            <div class="task-icon-badge" (click)="completeTask(task.id)" style="cursor: pointer;" [style.opacity]="task.status === 'completed' ? 0.5 : 1">
+              <img src="/assets/dashboard-icons/task-icon.png" alt="Tarea" class="icon-image">
+            </div>
+            <div class="task-content">
+              <div class="task-title">{{ task.title }}</div>
+              <div class="task-meta">
+                <span *ngIf="task.dueTime">{{ task.dueTime }}</span>
+                <span *ngFor="let assignee of task.assignedTo" class="assignee-badge-dashboard">{{ assignee.name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EVENTOS PRÓXIMOS -->
+      <div class="section" *ngIf="upcomingEvents.length > 0">
+        <div class="section-header">
+          <h2 class="section-title">Eventos próximos</h2>
+        </div>
+
+        <div class="event-list">
+          <div *ngFor="let event of upcomingEvents" class="event-item" [style.border-left-color]="getEventColor(event.type)">
+            <div class="event-type-label">{{ getEventLabel(event.type) }}</div>
+            <div class="event-item-title">{{ event.title }}</div>
+            <div class="event-item-date">{{ event.startDate | date:'dd/MM/yyyy' }}</div>
+            <div class="event-item-desc" *ngIf="event.description">{{ event.description }}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    </div>
+  </div>
+</main>
+
+<!-- FAB BUTTON -->
+<button class="fab" (click)="onLogout()" title="Cerrar sesión">⊗</button>

@@ -1,0 +1,255 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper para obtener datos del usuario autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return getUserRole() == 'admin';
+    }
+
+    function isPrimaryCaregiver() {
+      return getUserRole() == 'primary_caregiver';
+    }
+
+    function isCollaborativeCaregiver() {
+      return getUserRole() == 'collaborative_caregiver';
+    }
+
+    function isCaregiver() {
+      return isPrimaryCaregiver() || isCollaborativeCaregiver() || isAdmin();
+    }
+
+    function isInvited() {
+      return getUserRole() == 'invited';
+    }
+
+    // Colección: users
+    // Almacena la información del usuario y su rol
+    match /users/{userId} {
+      // Leer: Cualquier usuario autenticado puede leer perfiles (datos sensibles están en subcollections)
+      allow read: if isAuthenticated();
+
+      // Solo el usuario puede actualizar su propio perfil
+      allow update: if request.auth.uid == userId;
+
+      // Solo admins pueden crear nuevos usuarios
+      allow create: if isAdmin();
+
+      // Solo admins pueden eliminar usuarios
+      allow delete: if isAdmin();
+    }
+
+    // Colección: dependents
+    // Almacena información de los dependientes
+    match /dependents/{dependentId} {
+      // Crear: Cuidadores primarios, colaborativos y admins
+      allow create: if isAuthenticated() && (isPrimaryCaregiver() || isCollaborativeCaregiver() || isAdmin());
+
+      // Leer: Cualquier usuario autenticado puede leer dependientes (verificación específica en app)
+      allow read: if isAuthenticated() && (isCaregiver() || isInvited() || isAdmin());
+
+      // Editar: Cuidadores primarios y colaborativos
+      allow update: if isAuthenticated() && isCaregiver();
+
+      // Eliminar: Solo cuidador primario
+      allow delete: if isAuthenticated() && isPrimaryCaregiver();
+    }
+
+    // Nested collections under dependents
+    match /dependents/{dependentId} {
+      // Sub-collection: appointments
+      match /appointments/{appointmentId} {
+        // Crear: Solo cuidadores (no invitados)
+        allow create: if isAuthenticated() && isCaregiver();
+
+        // Leer: Todos los cuidadores e invitados del dependiente
+        allow read: if isAuthenticated() && (
+          isCaregiver() || isInvited()
+        );
+
+        // Editar: Solo cuidadores (no invitados)
+        allow update: if isAuthenticated() && isCaregiver();
+
+        // Eliminar: Solo cuidadores primarios
+        allow delete: if isAuthenticated() && (
+          isPrimaryCaregiver() || isAdmin()
+        );
+      }
+
+      // Sub-collection: medications
+      match /medications/{medicationId} {
+        // Crear: Solo cuidadores
+        allow create: if isAuthenticated() && isCaregiver();
+
+        // Leer: Todos los cuidadores e invitados
+        allow read: if isAuthenticated() && (
+          isCaregiver() || isInvited()
+        );
+
+        // Editar: Solo cuidadores
+        allow update: if isAuthenticated() && isCaregiver();
+
+        // Eliminar: Solo cuidador primario
+        allow delete: if isAuthenticated() && (
+          isPrimaryCaregiver() || isAdmin()
+        );
+      }
+
+      // Sub-collection: documents
+      match /documents/{documentId} {
+        // Crear: Solo cuidadores
+        allow create: if isAuthenticated() && isCaregiver();
+
+        // Leer: Todos los cuidadores e invitados
+        allow read: if isAuthenticated() && (
+          isCaregiver() || isInvited()
+        );
+
+        // Editar: Solo cuidadores
+        allow update: if isAuthenticated() && isCaregiver();
+
+        // Eliminar: Solo cuidador primario
+        allow delete: if isAuthenticated() && (
+          isPrimaryCaregiver() || isAdmin()
+        );
+      }
+
+      // Sub-collection: messages (para chat)
+      match /messages/{messageId} {
+        // Crear: Solo cuidadores (no invitados)
+        allow create: if isAuthenticated() && isCaregiver();
+
+        // Leer: Todos los cuidadores e invitados
+        allow read: if isAuthenticated() && (
+          isCaregiver() || isInvited()
+        );
+
+        // Editar: Solo cuidadores
+        allow update: if isAuthenticated() && isCaregiver();
+
+        // Eliminar: Solo cuidador primario
+        allow delete: if isAuthenticated() && (
+          isPrimaryCaregiver() || isAdmin()
+        );
+      }
+
+      // Sub-collection: calendar_events
+      match /calendar_events/{eventId} {
+        // Crear: Solo cuidadores
+        allow create: if isAuthenticated() && isCaregiver();
+
+        // Leer: Todos los cuidadores e invitados
+        allow read: if isAuthenticated() && (
+          isCaregiver() || isInvited()
+        );
+
+        // Editar: Solo cuidadores
+        allow update: if isAuthenticated() && isCaregiver();
+
+        // Eliminar: Solo cuidador primario
+        allow delete: if isAuthenticated() && (
+          isPrimaryCaregiver() || isAdmin()
+        );
+      }
+    }
+
+    // Colección: tasks (top-level)
+    // Almacena tareas asignadas a cuidadores
+    match /tasks/{taskId} {
+      // Crear: Solo cuidadores
+      allow create: if isAuthenticated() && isCaregiver();
+
+      // Leer: Todos los cuidadores e invitados
+      allow read: if isAuthenticated() && (
+        isCaregiver() || isInvited()
+      );
+
+      // Editar: Solo cuidadores
+      allow update: if isAuthenticated() && isCaregiver();
+
+      // Eliminar: Solo cuidador primario
+      allow delete: if isAuthenticated() && (
+        isPrimaryCaregiver() || isAdmin()
+      );
+    }
+
+    // Colección: chatRooms (top-level)
+    // Almacena mensajes del chat
+    match /chatRooms/{chatRoomId} {
+      // Crear: Solo cuidadores (no invitados)
+      allow create: if isAuthenticated() && isCaregiver();
+
+      // Leer: Todos los cuidadores e invitados
+      allow read: if isAuthenticated() && (
+        isCaregiver() || isInvited()
+      );
+
+      // Editar: Solo el autor del mensaje o admins
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+
+      // Eliminar: Solo el autor del mensaje o admins
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // Colección: caregiver_dependents
+    // Relaciona cuidadores con dependientes
+    match /caregiver_dependents/{document=**} {
+      // Solo cuidadores y admins pueden leer
+      allow read: if isAuthenticated() && (
+        isCaregiver() || isAdmin()
+      );
+
+      // Cuidadores primarios y colaborativos pueden crear relaciones (cuando crean dependientes)
+      allow create: if isAuthenticated() && (
+        isPrimaryCaregiver() || isCollaborativeCaregiver() || isAdmin()
+      );
+
+      // Solo cuidador primario puede actualizar
+      allow update: if isAuthenticated() && (
+        isPrimaryCaregiver() || isAdmin()
+      );
+
+      // Solo cuidador primario puede eliminar
+      allow delete: if isAuthenticated() && (
+        isPrimaryCaregiver() || isAdmin()
+      );
+    }
+
+    // Colección: invitations
+    // Almacena invitaciones pendientes
+    match /invitations/{invitationId} {
+      // Crear: Solo cuidadores primarios
+      allow create: if isAuthenticated() && isPrimaryCaregiver();
+
+      // Leer: Cualquier usuario autenticado (token es seguro, validamos email en app)
+      allow read: if isAuthenticated();
+
+      // Actualizar: Solo el usuario invitado puede aceptar
+      allow update: if isAuthenticated() && (
+        request.auth.token.email == resource.data.invitedEmail
+      );
+
+      // Eliminar: Solo el cuidador primario
+      allow delete: if isAuthenticated() && (
+        resource.data.inviterUserId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // Deny everything not explicitly allowed
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

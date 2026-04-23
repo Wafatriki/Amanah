@@ -1,0 +1,255 @@
+<div class="chat-wrapper">
+  <!-- App Header -->
+  <div class="app-header">
+    <h1>Amanah</h1>
+    <button 
+      class="btn-toggle-ai"
+      (click)="toggleAIChat()"
+      [class.active]="showAIChat"
+      title="Cambiar a chat con IA"
+    >
+      <img src="assets/icons/IA-icon.png" alt="IA" class="ai-icon-inline" /> IA
+    </button>
+  </div>
+
+  <!-- CHAT CON IA -->
+  <ng-container *ngIf="showAIChat">
+    <!-- AI Chat Header -->
+    <div class="profile-section ai-section">
+      <div class="profile-header">
+        <div class="ai-title-block">
+          <h2><img src="assets/icons/IA-icon.png" alt="IA" class="ai-icon-inline" /> Asistente de IA</h2>
+          <p class="participant-info">Haz preguntas sobre tareas, medicamentos y citas</p>
+        </div>
+
+        <button class="btn-ai-close" type="button" (click)="closeAIChat()" aria-label="Cerrar chat de IA">
+          Volver
+        </button>
+      </div>
+
+      <div class="ai-context-bar">
+        <span class="ai-context-pill" *ngIf="dependentName">Dependiente: {{ dependentName }}</span>
+        <span class="ai-context-pill ai-context-muted">{{ aiShortcutHint }}</span>
+      </div>
+    </div>
+
+    <!-- AI Messages List -->
+    <div class="messages-list ai-messages" #messagesContainer>
+      <div *ngIf="aiMessages.length === 0" class="empty-chat">
+        <p>¡Hola! Soy tu asistente de IA. Puedo ayudarte con:</p>
+        <ul class="ai-help-list">
+          <li>Tareas del día</li>
+          <li>Medicamentos activos</li>
+          <li>Próximas citas médicas</li>
+          <li>Recordatorios y más</li>
+        </ul>
+        <p class="empty-chat-hint">Escribe abajo y pulsa Enter para enviar.</p>
+      </div>
+
+      <div *ngFor="let msg of aiMessages; let last = last"
+           class="ai-message-group"
+           [class.ai-message]="msg.role === 'ai'"
+           [class.user-message]="msg.role === 'user'">
+        
+        <div class="ai-message-avatar" *ngIf="msg.role === 'ai'">
+          <img src="assets/icons/IA-icon.png" alt="IA" class="ai-icon-avatar" />
+        </div>
+
+        <div class="ai-message-bubble">
+          <div class="ai-message-text">{{ msg.text }}</div>
+          <div class="ai-message-time">{{ msg.timestamp | date: 'HH:mm' }}</div>
+        </div>
+      </div>
+
+      <!-- Loading indicator -->
+      <div *ngIf="aiLoading" class="ai-message-group ai-message">
+        <div class="ai-message-avatar"><img src="assets/icons/IA-icon.png" alt="IA" class="ai-icon-avatar" /></div>
+        <div class="ai-message-bubble loading">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Suggested Questions -->
+    <div class="ai-suggestions" *ngIf="aiMessages.length === 0 && !aiLoading">
+      <p class="suggestions-title">Preguntas frecuentes:</p>
+      <div class="suggestions-grid">
+        <button *ngFor="let question of aiSuggestedQuestions"
+                class="suggestion-btn"
+                (click)="useSuggestedQuestion(question); sendAIMessage(question)"
+                [disabled]="aiLoading">
+          {{ question }}
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Input Area -->
+    <div class="chat-input-section">
+      <div class="ai-input-container">
+        <textarea
+          [(ngModel)]="messageText"
+          (keydown)="onAIInputKeydown($event)"
+          placeholder="Pregunta algo sobre las tareas, medicación o citas..."
+          class="ai-input"
+          rows="2"
+          aria-label="Escribe tu pregunta para el asistente de IA"
+          [disabled]="!activeDependentId || aiLoading"
+        ></textarea>
+
+        <button
+          class="btn-send ai-send"
+          (click)="sendAIMessage()"
+          type="button"
+          [disabled]="!messageText.trim() || aiLoading || !activeDependentId"
+          [attr.aria-label]="aiLoading ? 'Enviando pregunta' : 'Enviar pregunta al asistente de IA'"
+        >
+          {{ aiLoading ? '⏳' : '➤' }}
+        </button>
+      </div>
+
+      <!-- Error message -->
+      <div *ngIf="error" class="error-message">
+        {{ error }}
+      </div>
+
+      <div class="ai-feedback" aria-live="polite" aria-atomic="true">
+        <span *ngIf="aiLoading">Procesando respuesta...</span>
+        <span *ngIf="!aiLoading && showAIChat">Listo para ayudarte.</span>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- CHAT NORMAL -->
+  <ng-container *ngIf="!showAIChat">
+    <!-- Caregivers Profile Section -->
+    <div class="profile-section">
+      <div class="profile-header">
+        <div>
+          <h2>Chat de cuidadores</h2>
+          <p class="participant-info" *ngIf="caregivers.length > 0">
+            {{ caregivers.length }} participante<ng-container *ngIf="caregivers.length !== 1">s</ng-container>
+          </p>
+        </div>
+      </div>
+
+      <div class="caregivers-list" *ngIf="caregivers.length > 0">
+        <div *ngFor="let caregiver of caregivers" class="caregiver-item">
+          <div class="caregiver-avatar">
+            @if (caregiver.image) {
+              <img [src]="caregiver.image" alt="{{ caregiver.name }}" class="avatar-image">
+            } @else {
+              {{ caregiver.name.charAt(0).toUpperCase() }}
+            }
+          </div>
+          <span class="caregiver-name">{{ caregiver.name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages List -->
+    <div class="messages-list" #messagesContainer>
+      <div *ngIf="messages.length === 0" class="empty-chat">
+        <p>Sin mensajes aún. ¡Sé el primero en escribir!</p>
+      </div>
+
+      <div *ngFor="let message of messages; trackBy: trackByMessageId"
+           class="message-group"
+           [class.own-message]="message.userId === currentUserId">
+
+        <!-- Only show user info for other's messages -->
+        <div *ngIf="message.userId !== currentUserId" class="message-user-info">
+          <div class="avatar">{{ (userNames.get(message.userId) || message.userName).charAt(0).toUpperCase() }}</div>
+          <div class="user-name">{{ userNames.get(message.userId) || message.userName }}</div>
+        </div>
+
+        <!-- Message Bubble -->
+        <div class="message-bubble">
+          <div class="message-text">{{ message.text }}</div>
+          <img *ngIf="message.imageUrl" [src]="message.imageUrl" alt="Message image" class="message-image">
+
+          <!-- Archivo adjunto (no imagen) -->
+          <a *ngIf="message.fileUrl && !message.imageUrl"
+             [href]="message.fileUrl"
+             [download]="message.fileName"
+             class="message-file"
+             target="_blank">
+            <span class="file-icon">키</span>
+            <span class="file-name">{{ message.fileName }}</span>
+          </a>
+
+          <div class="message-meta">
+            <span class="timestamp">{{ message.timestamp | date: 'HH:mm' }}</span>
+            <span class="edited-label" *ngIf="message.isEdited">(editado)</span>
+          </div>
+
+          <!-- Delete button for own messages -->
+          <button *ngIf="message.userId === currentUserId" class="btn-delete" (click)="deleteMessage(message.id!)" title="Eliminar">
+            ×
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input-section">
+      <!-- Preview de Archivo/Imagen -->
+      <div *ngIf="imagePreview || selectedFileName" class="file-preview">
+        <div class="preview-content">
+          <div *ngIf="imagePreview" class="image-preview">
+            <img [src]="imagePreview" alt="Preview">
+          </div>
+          <div *ngIf="selectedFileName && !imagePreview" class="file-info">
+            <div class="file-icon">[Archivo]</div>
+            <div class="file-name">{{ selectedFileName }}</div>
+          </div>
+        </div>
+        <button class="btn-remove-image" (click)="removeImage()" title="Quitar archivo">×</button>
+      </div>
+
+      <!-- Input y Botones -->
+      <div class="input-container">
+        <input
+          #fileInput
+          type="file"
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+          (change)="onFileSelected($event)"
+          hidden
+        >
+
+        <textarea
+          [(ngModel)]="messageText"
+          (keyup.enter)="sendMessage()"
+          placeholder="Escribir un mensaje..."
+          class="message-input"
+          rows="1"
+          [disabled]="!currentUserId || !activeDependentId"
+        ></textarea>
+
+        <button
+          class="btn-attach"
+          (click)="fileInput.click()"
+          [disabled]="!currentUserId || !activeDependentId"
+          title="Adjuntar archivo o imagen"
+        >
+          <img src="assets/icons/adjuntar.png" alt="Adjuntar" class="btn-attach-icon" />
+        </button>
+
+        <button
+          class="btn-send"
+          (click)="sendMessage()"
+          [disabled]="(!messageText.trim() && !imagePreview) || sending"
+          title="Enviar"
+        >
+          ➤
+        </button>
+      </div>
+
+      <!-- Error message -->
+      <div *ngIf="error" class="error-message">
+        {{ error }}
+      </div>
+    </div>
+  </ng-container>
+</div>

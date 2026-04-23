@@ -1,0 +1,194 @@
+<div class="caregivers-page">
+  <!-- Header -->
+  <div class="caregivers-header">
+    <div class="header-content">
+      <h1 class="page-title">Cuidadores</h1>
+      <p class="page-subtitle">{{ dependentName ? 'Cuidadores de ' + dependentName : 'Gestiona los cuidadores del dependiente' }}</p>
+    </div>
+  </div>
+
+  <!-- No dependiente seleccionado -->
+  <div *ngIf="!dependentId && !loading" class="no-dependent-section">
+    <div class="empty-state">
+      <h2>No hay dependiente seleccionado</h2>
+      <p>Selecciona un dependiente para ver y gestionar sus cuidadores</p>
+      <button class="select-btn" (click)="goToDependentSelector()">
+        Ir a Dependientes
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-section">
+    <div class="spinner"></div>
+    <p>Cargando cuidadores...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading && dependentId" class="error-message">
+    <p>{{ error }}</p>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="dependentId && !loading" class="content">
+    <!-- Listado de cuidadores en grid -->
+    <div class="caregivers-grid">
+      <button
+        *ngFor="let caregiver of caregivers"
+        class="caregiver-card"
+        (click)="viewCaregiverProfile(caregiver.userId, currentUserId)"
+        type="button"
+        aria-label="View profile of {{ caregiver.name }}">
+        <!-- Top Section: Avatar & Role Badge -->
+        <div class="card-top">
+          <div class="caregiver-avatar">
+            @if (caregiver.image) {
+              <img [src]="caregiver.image" alt="{{ caregiver.name }}" class="avatar-image">
+            } @else {
+              <div class="avatar-circle">{{ caregiver.name.charAt(0).toUpperCase() }}</div>
+            }
+          </div>
+        </div>
+
+        <!-- Middle Section: Name -->
+        <div class="card-middle">
+          <h3>{{ caregiver.name }}</h3>
+        </div>
+
+        <!-- Bottom Section: Email & Role -->
+        <div class="card-bottom">
+          <p class="email">{{ caregiver.email }}</p>
+          <p class="role-text" [class.role-primary]="caregiver.role === 'primary_caregiver'" [class.role-collaborative]="caregiver.role === 'collaborative_caregiver'" [class.role-invited]="caregiver.role === 'invited'">
+            <span *ngIf="caregiver.role === 'primary_caregiver'">
+              Cuidador Principal
+            </span>
+            <span *ngIf="caregiver.role === 'collaborative_caregiver'">
+              Cuidador Colaborativo
+            </span>
+            <span *ngIf="caregiver.role === 'invited'">
+              Invitado
+            </span>
+          </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="card-actions">
+          <button
+            *ngIf="isPrimaryCaregiver(currentUserId!) && caregiver.userId !== currentUserId"
+            (click)="stopPropagation($event); toggleMenu(caregiver.userId)"
+            class="menu-btn"
+            title="Opciones">
+            ⋯
+          </button>
+
+          <!-- Dropdown Menu -->
+          <div *ngIf="activeMenuId === caregiver.userId && isPrimaryCaregiver(currentUserId!) && caregiver.userId !== currentUserId" class="dropdown-menu">
+            <div class="dropdown-section">
+              <span class="dropdown-label">Cambiar rol a:</span>
+              <button
+                class="dropdown-item"
+                *ngIf="caregiver.role !== 'primary_caregiver'"
+                (click)="stopPropagation($event); changeRole(caregiver, 'primary_caregiver'); closeMenu()">
+                Cuidador Principal
+              </button>
+              <button
+                class="dropdown-item"
+                *ngIf="caregiver.role !== 'collaborative_caregiver'"
+                (click)="stopPropagation($event); changeRole(caregiver, 'collaborative_caregiver'); closeMenu()">
+                Cuidador Colaborativo
+              </button>
+              <button
+                class="dropdown-item"
+                *ngIf="caregiver.role !== 'invited'"
+                (click)="stopPropagation($event); changeRole(caregiver, 'invited'); closeMenu()">
+                Invitado
+              </button>
+            </div>
+            <button class="dropdown-item delete-item" (click)="stopPropagation($event); removeCaregiver(caregiver.userId); closeMenu()">
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </button>
+
+      <!-- Sin cuidadores -->
+      <div *ngIf="caregivers.length === 0" class="empty-caregivers">
+        <p>No hay cuidadores asignados</p>
+        <p class="subtitle">Invita a cuidadores para que cuiden de {{ dependentName }}</p>
+      </div>
+    </div>
+
+    <!-- Invite Button -->
+    <div class="invite-footer" *ngIf="isPrimaryCaregiver(currentUserId!)">
+      <button
+        class="invite-btn"
+        (click)="toggleInviteForm()">
+        <span class="btn-text">{{ showInviteForm ? 'Cerrar' : 'Invitar Cuidador' }}</span>
+      </button>
+    </div>
+
+    <!-- Invite Form - Expandable -->
+    <div *ngIf="showInviteForm && isPrimaryCaregiver(currentUserId!)" class="invite-form-container">
+      <form (ngSubmit)="sendInvitation()" class="invite-form">
+        <h3>Invitar nuevo cuidador</h3>
+
+        <div class="form-group">
+          <label for="email">Email del cuidador</label>
+          <input
+            id="email"
+            type="email"
+            [(ngModel)]="invitedEmail"
+            name="email"
+            placeholder="ejemplo@email.com"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="role">Asignar rol</label>
+          <select [(ngModel)]="inviteRole" name="role" id="role">
+            <option value="collaborative_caregiver">Cuidador Colaborativo</option>
+            <option value="primary_caregiver">Cuidador Principal</option>
+          </select>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="submit-btn" [disabled]="inviteLoading">
+            {{ inviteLoading ? 'Enviando...' : 'Enviar Invitación' }}
+          </button>
+          <button
+            type="button"
+            class="cancel-btn"
+            (click)="toggleInviteForm()">
+            Cancelar
+          </button>
+        </div>
+
+        <!-- Messages -->
+        <div *ngIf="inviteSuccess" class="success-message">
+          <span class="text">{{ inviteSuccess }}</span>
+        </div>
+        <div *ngIf="inviteError" class="error-message-form">
+          <span class="text">{{ inviteError }}</span>
+        </div>
+
+        <!-- Invitation Link -->
+        <div *ngIf="showInvitationLink && invitationLink" class="invitation-link-section">
+          <p class="link-label">Comparte este link con el cuidador:</p>
+          <div class="link-container">
+            <input type="text" [value]="invitationLink" readonly class="link-input" />
+            <button type="button" (click)="copyInvitationLink()" class="copy-btn">
+              Copiar
+            </button>
+          </div>
+          <p class="link-note">El link vence en 7 días. Comparte este enlace para que acepte la invitación.</p>
+        </div>
+      </form>
+    </div>
+
+    <!-- Message for non-primary caregivers -->
+    <div *ngIf="!isPrimaryCaregiver(currentUserId!) && dependentId" class="non-primary-message">
+      <p>Solo el cuidador principal puede invitar a otros cuidadores</p>
+    </div>
+  </div>
+</div>

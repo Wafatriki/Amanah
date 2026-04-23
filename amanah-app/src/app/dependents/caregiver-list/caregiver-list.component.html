@@ -1,0 +1,101 @@
+<div class="caregiver-container">
+  <!-- Header -->
+  <div class="header">
+    <button class="back-btn" (click)="goBack()">← Atrás</button>
+    <h1>Cuidadores</h1>
+    <div class="placeholder"></div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <p>Cargando cuidadores...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="error-message">
+    <p> {{ error }}</p>
+  </div>
+
+  <!-- Listado de cuidadores (cards como en tu screenshot) -->
+  <div class="caregivers-list" *ngIf="!loading && !error">
+    <div *ngFor="let caregiver of caregivers" class="caregiver-card">
+      <!-- Avatar -->
+      <div class="card-avatar">
+        @if (caregiver.image) {
+          <img [src]="caregiver.image" alt="{{ caregiver.name }}" class="avatar-image">
+        } @else {
+          <div class="avatar-circle">{{ caregiver.name.charAt(0).toUpperCase() }}</div>
+        }
+      </div>
+
+      <!-- Info -->
+      <button
+        class="card-info"
+        (click)="viewCaregiverProfile(caregiver.userId, currentUserId)"
+        type="button"
+        aria-label="View profile of {{ caregiver.name }}">
+        <h3>{{ caregiver.name }}</h3>
+        <p class="email">{{ caregiver.email }}</p>
+        <p class="role">
+          <span class="role-label-primary" *ngIf="caregiver.role === 'primary_caregiver'"> Cuidador Principal</span>
+          <span class="role-label-collaborative" *ngIf="caregiver.role === 'collaborative_caregiver'"> Cuidador Colaborativo</span>
+          <span class="role-label-invited" *ngIf="caregiver.role === 'invited'"> Invitado</span>
+        </p>
+      </button>
+
+      <!-- Acciones -->
+      <div class="card-actions" *ngIf="currentUserId !== caregiver.userId">
+        <button
+          (click)="toggleMenu(caregiver.userId)"
+          class="menu-btn"
+          title="Opciones">
+          ⋮
+        </button>
+
+        <!-- Menú desplegable -->
+        <div class="dropdown-menu" *ngIf="openMenuId === caregiver.userId">
+          <div class="dropdown-section">
+            <span class="dropdown-label">Cambiar rol a:</span>
+            <button
+              class="dropdown-item"
+              *ngIf="caregiver.role !== 'primary_caregiver'"
+              (click)="changeRole(caregiver, 'primary_caregiver')">
+              Cuidador Principal
+            </button>
+            <button
+              class="dropdown-item"
+              *ngIf="caregiver.role !== 'collaborative_caregiver'"
+              (click)="changeRole(caregiver, 'collaborative_caregiver')">
+              Cuidador Colaborativo
+            </button>
+            <button
+              class="dropdown-item"
+              *ngIf="caregiver.role !== 'invited'"
+              (click)="changeRole(caregiver, 'invited')">
+              Invitado
+            </button>
+          </div>
+          <button
+            *ngIf="caregiver.role !== 'primary_caregiver'"
+            (click)="removeCaregiver(caregiver.userId)"
+            class="dropdown-item delete">
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Si no hay cuidadores -->
+    <div *ngIf="caregivers.length === 0" class="empty-state">
+      <p>No hay cuidadores asignados aún</p>
+    </div>
+  </div>
+
+  <!-- Botón invitar -->
+  <div class="footer">
+    <button class="invite-btn" (click)="openInviteForm()">
+      <span class="btn-icon"></span>
+      Invitar cuidador
+    </button>
+  </div>
+</div>

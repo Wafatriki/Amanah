@@ -1,0 +1,1326 @@
+$primary-color: #B8A5D6;
+$primary-dark: #a491c7;
+$gray-light: #f9f9f9;
+$gray-border: #f0f0f0;
+$text-dark: #333333;
+$text-gray: #666666;
+$orange-color: #f57f17;
+$warning-color: #f39c12;
+$error-color: #e74c3c;
+
+.appointments-container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #ffffff;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.appointments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 24px;
+  border-bottom: 2px solid $gray-border;
+
+  .header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .page-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: $text-dark;
+    margin: 0;
+    letter-spacing: -0.5px;
+  }
+
+  .page-subtitle {
+    font-size: 14px;
+    color: $text-gray;
+    margin: 0;
+    font-weight: 400;
+  }
+
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, $primary-color, $primary-dark);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    .btn-icon {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+    }
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(184, 165, 214, 0.3);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &.alert-error {
+    background-color: #fee;
+    color: #c33;
+    border-left: 4px solid #c33;
+
+    button {
+      background: none;
+      border: none;
+      color: #c33;
+      cursor: pointer;
+      font-size: 18px;
+    }
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  color: $text-gray;
+  font-size: 16px;
+  min-height: 200px;
+}
+
+.appointments-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid $gray-border;
+  padding-bottom: 0;
+
+  .tab-btn {
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    color: $text-gray;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+
+    &:hover {
+      color: $text-dark;
+    }
+
+    &.active {
+      color: $primary-color;
+      border-bottom-color: $primary-color;
+    }
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  gap: 16px;
+
+  .empty-icon {
+    font-size: 64px;
+  }
+
+  .empty-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: $text-dark;
+  }
+
+  .empty-subtitle {
+    margin: 0;
+    color: $text-gray;
+    font-size: 14px;
+    max-width: 300px;
+  }
+
+  .btn-primary {
+    margin-top: 12px;
+  }
+}
+
+.appointments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.appointment-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background-color: $gray-light;
+  border: 1px solid $gray-border;
+  border-left: 4px solid $primary-color;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-left-color: $primary-dark;
+  }
+
+  &.completed {
+    opacity: 0.7;
+    border-left-color: #4caf50;
+  }
+
+  &.overdue {
+    opacity: 0.8;
+    border-left-color: #f57f17;
+  }
+
+  &.cancelled {
+    opacity: 0.5;
+    border-left-color: $error-color;
+  }
+
+  .appointment-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+
+    .appointment-info {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .appointment-date-time {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        min-width: 80px;
+
+        .date {
+          font-size: 13px;
+          font-weight: 700;
+          color: $primary-color;
+        }
+
+        .time {
+          font-size: 12px;
+          color: $text-gray;
+          font-weight: 600;
+        }
+      }
+
+      .appointment-details {
+        flex: 1;
+
+        h4 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 700;
+          color: $text-dark;
+        }
+
+        p {
+          margin: 2px 0 0 0;
+          font-size: 12px;
+          color: $text-gray;
+          line-height: 1.4;
+
+          &.doctor {
+            font-weight: 600;
+          }
+        }
+      }
+    }
+
+    .appointment-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .status-badge {
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 4px;
+        text-transform: uppercase;
+
+        &.badge-scheduled {
+          background-color: rgba(184, 165, 214, 0.2);
+          color: $primary-color;
+        }
+
+        &.badge-completed {
+
+          background-color: rgba(76, 175, 80, 0.2);
+
+          color: #4caf50;
+
+        }
+
+        &.badge-overdue {
+          background-color: rgba(255, 193, 7, 0.2);
+          color: #f57f17;
+        }
+
+        &.badge-cancelled {
+          background-color: rgba(231, 76, 60, 0.2);
+          color: $error-color;
+        }
+      }
+
+      .notes-count {
+        font-size: 12px;
+        color: $text-gray;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .appointment-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: 12px;
+
+    button {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: none;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.2s ease;
+
+      .action-icon {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+        opacity: 0.6;
+        transition: opacity 0.2s ease;
+      }
+
+      .icon-text {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        opacity: 0.6;
+        transition: opacity 0.2s ease;
+      }
+
+      &:hover {
+        background-color: transparent;
+      }
+
+      &.btn-edit:hover {
+        background-color: rgba(184, 165, 214, 0.1);
+        color: $primary-color;
+
+        .action-icon,
+        .icon-text {
+          opacity: 1;
+        }
+      }
+
+      &.btn-complete:hover {
+        background-color: rgba(76, 175, 80, 0.1);
+        color: #4caf50;
+
+        .action-icon,
+        .icon-text {
+          opacity: 1;
+          color: #4caf50;
+        }
+      }
+
+      &.btn-cancel:hover {
+        background-color: rgba(255, 152, 0, 0.1);
+        color: #ff9800;
+
+        .action-icon,
+        .icon-text {
+          opacity: 1;
+          color: #ff9800;
+        }
+      }
+
+      &.btn-delete:hover {
+        background-color: rgba(231, 76, 60, 0.1);
+        color: $error-color;
+
+        .action-icon,
+        .icon-text {
+          opacity: 1;
+        }
+
+        .action-icon {
+          filter: invert(28%) sepia(83%) saturate(1119%) hue-rotate(0deg);
+        }
+      }
+    }
+  }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+
+  .modal-content {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease-out;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 24px 16px;
+      border-bottom: 2px solid $gray-border;
+      position: sticky;
+      top: 0;
+      background-color: white;
+
+      h3 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: $text-dark;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: $text-gray;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: $text-dark;
+        }
+      }
+    }
+
+    .modal-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+
+      .detail-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+
+          .label {
+            font-size: 13px;
+            font-weight: 700;
+            color: $text-gray;
+            min-width: 120px;
+            text-transform: uppercase;
+          }
+
+          .value {
+            font-size: 14px;
+            color: $text-dark;
+            font-weight: 500;
+            text-align: right;
+            flex: 1;
+          }
+        }
+      }
+
+      .status-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        label {
+          font-size: 13px;
+          font-weight: 700;
+          color: $text-gray;
+          text-transform: uppercase;
+        }
+
+        .status-select {
+          padding: 10px 12px;
+          border: 1px solid $gray-border;
+          border-radius: 6px;
+          font-size: 14px;
+          background-color: $gray-light;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:focus {
+            outline: none;
+            border-color: $primary-color;
+            box-shadow: 0 0 0 3px rgba(184, 165, 214, 0.1);
+          }
+        }
+      }
+
+      .notes-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        background-color: $gray-light;
+        border-radius: 8px;
+
+        h4 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 700;
+          color: $text-dark;
+        }
+
+        .notes-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+
+          .note-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 12px;
+            background-color: white;
+            border-radius: 6px;
+
+            .note-meta {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 8px;
+
+              strong {
+                font-size: 13px;
+                color: $text-dark;
+              }
+
+              .date {
+                font-size: 11px;
+                color: $text-gray;
+              }
+            }
+
+            p {
+              margin: 0;
+              font-size: 13px;
+              color: $text-dark;
+              line-height: 1.5;
+            }
+          }
+        }
+      }
+
+      .add-note-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .btn-add-note {
+          padding: 10px 16px;
+          background-color: rgba(184, 165, 214, 0.2);
+          border: 1px solid $primary-color;
+          color: $primary-color;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background-color: rgba(184, 165, 214, 0.3);
+          }
+        }
+
+        .note-form {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+
+          .note-input {
+            padding: 12px;
+            border: 1px solid $gray-border;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.2s ease;
+
+            &:focus {
+              outline: none;
+              border-color: $primary-color;
+              box-shadow: 0 0 0 3px rgba(184, 165, 214, 0.1);
+            }
+          }
+
+          .note-actions {
+            display: flex;
+            gap: 12px;
+
+            button {
+              flex: 1;
+              padding: 10px 16px;
+              border: none;
+              border-radius: 6px;
+              font-size: 13px;
+              font-weight: 700;
+              cursor: pointer;
+              transition: all 0.2s ease;
+
+              &.btn-cancel {
+                background-color: $gray-light;
+                color: $text-dark;
+                border: 1px solid $gray-border;
+
+                &:hover {
+                  background-color: #f0f0f0;
+                }
+              }
+
+              &.btn-submit {
+                background: linear-gradient(135deg, $primary-color, $primary-dark);
+                color: white;
+
+                &:hover:not(:disabled) {
+                  transform: translateY(-2px);
+                  box-shadow: 0 2px 8px rgba(184, 165, 214, 0.3);
+                }
+
+                &:disabled {
+                  opacity: 0.6;
+                  cursor: not-allowed;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Status Badge Section in Modal */
+.status-badge-section {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+
+  .status-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+
+    &.status-scheduled {
+      background-color: rgba(184, 165, 214, 0.2);
+      color: $primary-color;
+    }
+
+    &.status-completed {
+      background-color: rgba(255, 193, 7, 0.2);
+      color: #f57f17;
+    }
+
+    &.status-cancelled {
+      background-color: rgba(231, 76, 60, 0.2);
+      color: $error-color;
+    }
+  }
+}
+
+/* Modal Footer Styles */
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid $gray-border;
+  background-color: $gray-light;
+
+  button {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.btn-cancel-appt {
+      background-color: rgba(255, 152, 0, 0.2);
+      color: #ff9800;
+      border: 1px solid #ff9800;
+
+      &:hover {
+        background-color: rgba(255, 152, 0, 0.3);
+      }
+    }
+
+    &.btn-delete-appt {
+      background-color: rgba(231, 76, 60, 0.2);
+      color: $error-color;
+      border: 1px solid $error-color;
+
+      &:hover {
+        background-color: rgba(231, 76, 60, 0.3);
+      }
+    }
+
+    &.btn-close-modal {
+      background-color: $gray-light;
+      color: $text-dark;
+      border: 1px solid $gray-border;
+
+      &:hover {
+        background-color: #f0f0f0;
+      }
+    }
+  }
+}
+
+/* Caregivers styling */
+.appointment-details {
+  p.caregivers {
+    font-weight: 600 !important;
+    color: $primary-color !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .appointments-container {
+    padding: 16px;
+  }
+
+  .appointments-header {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .btn-primary {
+      align-self: flex-end;
+    }
+  }
+
+  .appointment-card {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .appointment-header {
+      width: 100%;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+
+      .appointment-info {
+        width: 100%;
+        flex-direction: column;
+      }
+    }
+
+    .appointment-actions {
+      width: 100%;
+      margin: 12px 0 0 0;
+    }
+  }
+
+  .modal-overlay {
+    .modal-content {
+      border-radius: 12px 12px 0 0;
+      max-width: 100%;
+    }
+  }
+}
+
+
+.appointment-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background-color: $gray-light;
+  border: 1px solid $gray-border;
+  border-left: 4px solid $primary-color;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-left-color: $primary-dark;
+  }
+
+  &.completed {
+    opacity: 0.7;
+    border-left-color: #4caf50;
+  }
+
+  &.overdue {
+    opacity: 0.8;
+    border-left-color: #f57f17;
+  }
+
+  &.cancelled {
+    opacity: 0.5;
+    border-left-color: $error-color;
+  }
+
+  .appointment-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+
+    .appointment-info {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .appointment-date-time {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        min-width: 80px;
+
+        .date {
+          font-size: 13px;
+          font-weight: 700;
+          color: $primary-color;
+        }
+
+        .time {
+          font-size: 12px;
+          color: $text-gray;
+          font-weight: 600;
+        }
+      }
+
+      .appointment-details {
+        flex: 1;
+
+        h4 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 700;
+          color: $text-dark;
+        }
+
+        p {
+          margin: 2px 0 0 0;
+          font-size: 12px;
+          color: $text-gray;
+          line-height: 1.4;
+
+          &.doctor {
+            font-weight: 600;
+          }
+        }
+      }
+    }
+
+    .appointment-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .status-badge {
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        border-radius: 4px;
+        text-transform: uppercase;
+
+        &.badge-scheduled {
+          background-color: rgba(184, 165, 214, 0.2);
+          color: $primary-color;
+        }
+
+        &.badge-completed {
+
+          background-color: rgba(76, 175, 80, 0.2);
+
+          color: #4caf50;
+
+        }
+
+        &.badge-overdue {
+          background-color: rgba(255, 193, 7, 0.2);
+          color: #f57f17;
+        }
+
+        &.badge-cancelled {
+          background-color: rgba(231, 76, 60, 0.2);
+          color: $error-color;
+        }
+      }
+
+      .notes-count {
+        font-size: 12px;
+        color: $text-gray;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  .appointment-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: 12px;
+
+    button {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: white;
+      border: 1px solid $gray-border;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: $text-gray;
+      }
+
+      &.btn-delete:hover {
+        background-color: rgba(231, 76, 60, 0.1);
+        border-color: $error-color;
+        color: $error-color;
+      }
+    }
+  }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+
+  .modal-content {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease-out;
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 24px 16px;
+      border-bottom: 2px solid $gray-border;
+      position: sticky;
+      top: 0;
+      background-color: white;
+
+      h3 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: $text-dark;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: $text-gray;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: $text-dark;
+        }
+      }
+    }
+
+    .modal-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+
+      .detail-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+
+          .label {
+            font-size: 13px;
+            font-weight: 700;
+            color: $text-gray;
+            min-width: 120px;
+            text-transform: uppercase;
+          }
+
+          .value {
+            font-size: 14px;
+            color: $text-dark;
+            font-weight: 500;
+            text-align: right;
+            flex: 1;
+          }
+        }
+      }
+
+      .status-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        label {
+          font-size: 13px;
+          font-weight: 700;
+          color: $text-gray;
+          text-transform: uppercase;
+        }
+
+        .status-select {
+          padding: 10px 12px;
+          border: 1px solid $gray-border;
+          border-radius: 6px;
+          font-size: 14px;
+          background-color: $gray-light;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:focus {
+            outline: none;
+            border-color: $primary-color;
+            box-shadow: 0 0 0 3px rgba(184, 165, 214, 0.1);
+          }
+        }
+      }
+
+      .notes-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        background-color: $gray-light;
+        border-radius: 8px;
+
+        h4 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 700;
+          color: $text-dark;
+        }
+
+        .notes-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+
+          .note-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 12px;
+            background-color: white;
+            border-radius: 6px;
+
+            .note-meta {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 8px;
+
+              strong {
+                font-size: 13px;
+                color: $text-dark;
+              }
+
+              .date {
+                font-size: 11px;
+                color: $text-gray;
+              }
+            }
+
+            p {
+              margin: 0;
+              font-size: 13px;
+              color: $text-dark;
+              line-height: 1.5;
+            }
+          }
+        }
+      }
+
+      .add-note-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .btn-add-note {
+          padding: 10px 16px;
+          background-color: rgba(184, 165, 214, 0.2);
+          border: 1px solid $primary-color;
+          color: $primary-color;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background-color: rgba(184, 165, 214, 0.3);
+          }
+        }
+
+        .note-form {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+
+          .note-input {
+            padding: 12px;
+            border: 1px solid $gray-border;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.2s ease;
+
+            &:focus {
+              outline: none;
+              border-color: $primary-color;
+              box-shadow: 0 0 0 3px rgba(184, 165, 214, 0.1);
+            }
+          }
+
+          .note-actions {
+            display: flex;
+            gap: 12px;
+
+            button {
+              flex: 1;
+              padding: 10px 16px;
+              border: none;
+              border-radius: 6px;
+              font-size: 13px;
+              font-weight: 700;
+              cursor: pointer;
+              transition: all 0.2s ease;
+
+              &.btn-cancel {
+                background-color: $gray-light;
+                color: $text-dark;
+                border: 1px solid $gray-border;
+
+                &:hover {
+                  background-color: #f0f0f0;
+                }
+              }
+
+              &.btn-submit {
+                background: linear-gradient(135deg, $primary-color, $primary-dark);
+                color: white;
+
+                &:hover:not(:disabled) {
+                  transform: translateY(-2px);
+                  box-shadow: 0 2px 8px rgba(184, 165, 214, 0.3);
+                }
+
+                &:disabled {
+                  opacity: 0.6;
+                  cursor: not-allowed;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .appointments-container {
+    padding: 16px;
+  }
+
+  .appointments-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+
+    h2 {
+      font-size: 24px;
+    }
+
+    .btn-add-appointment {
+      align-self: flex-end;
+    }
+  }
+
+  .appointment-card {
+    flex-direction: column;
+    align-items: flex-start;
+
+    .appointment-header {
+      width: 100%;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+
+      .appointment-info {
+        width: 100%;
+        flex-direction: column;
+      }
+    }
+
+    .appointment-actions {
+      width: 100%;
+      margin: 12px 0 0 0;
+    }
+  }
+
+  .modal-overlay {
+    .modal-content {
+      border-radius: 12px 12px 0 0;
+      max-width: 100%;
+    }
+  }
+}
+
+

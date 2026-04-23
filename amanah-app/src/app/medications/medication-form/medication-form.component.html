@@ -1,0 +1,194 @@
+<div class="medication-form-container">
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <h1 class="form-title">{{ editMode ? 'Editar Medicación' : 'Nueva Medicación' }}</h1>
+      <p class="form-subtitle">{{ editMode ? 'Actualiza los detalles de la medicación' : 'Registra una nueva medicación para el dependiente' }}</p>
+    </div>
+    <button class="btn-close" (click)="onCancel()" title="Cerrar">×</button>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading-spinner">
+    <p>Cargando medicación...</p>
+  </div>
+
+  <!-- Form -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!loading" class="form">
+    <!-- Basic Information Section -->
+    <section class="form-section card-section">
+      <div class="section-header">
+        <h2>Información Básica</h2>
+      </div>
+
+      <div class="form-group">
+        <label for="name">Nombre de la Medicación *</label>
+        <input id="name" type="text" formControlName="name" placeholder="Ej: Aspirina, Metformina" />
+        <span class="error" *ngIf="form.get('name')?.errors && (form.get('name')?.touched || submitted)">Campo requerido</span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="dose">Dosis *</label>
+          <input id="dose" type="text" formControlName="dose" placeholder="Ej: 500mg, 2 tabletas" />
+          <span class="error" *ngIf="form.get('dose')?.errors && (form.get('dose')?.touched || submitted)">Campo requerido</span>
+        </div>
+
+        <div class="form-group">
+          <label for="presentation">Presentación *</label>
+          <select id="presentation" formControlName="presentation">
+            <option value="cápsulas">Cápsulas</option>
+            <option value="comprimidos">Comprimidos</option>
+            <option value="tabletas">Tabletas</option>
+            <option value="jarabe">Jarabe</option>
+            <option value="gotas">Gotas</option>
+            <option value="inyección">Inyección</option>
+            <option value="crema">Crema</option>
+            <option value="otra">Otra</option>
+          </select>
+        </div>
+      </div>
+
+
+
+      <div class="form-group">
+        <label for="indication">Indicación / Para qué se usa</label>
+        <textarea id="indication" formControlName="indication" placeholder="Ej: Dolor de cabeza, antiinflamatorio"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="prescribedBy">Prescrito por (Médico)</label>
+        <input id="prescribedBy" type="text" formControlName="prescribedBy" placeholder="Nombre del médico" />
+      </div>
+    </section>
+
+    <!-- Scheduling Section -->
+    <section class="form-section">
+      <div class="schedules-header">
+        <h2>Horarios de Administración</h2>
+        <button type="button" class="add-schedule-btn" (click)="addSchedule()">
+          + Agregar Horario
+        </button>
+      </div>
+
+      <div formArrayName="schedules" class="schedules-list">
+        <div *ngFor="let schedule of schedulesArray.controls; let i = index" [formGroupName]="i" class="schedule-form">
+          <h3>Horario {{ i + 1 }}</h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label [for]="'time-' + i">Hora *</label>
+              <input id="time-{{ i }}" type="time" formControlName="time" />
+              <span class="error" *ngIf="schedule.get('time')?.errors && (schedule.get('time')?.touched || submitted)">Campo requerido</span>
+            </div>
+
+            <div class="form-group">
+              <label [for]="'dosage-' + i">Dosis en este horario *</label>
+              <input
+                id="dosage-{{ i }}"
+                type="text"
+                formControlName="dosage"
+                placeholder="Ej: 1 tableta, 5ml"
+              />
+              <span class="error" *ngIf="schedule.get('dosage')?.errors && (schedule.get('dosage')?.touched || submitted)">Campo requerido</span>
+            </div>
+
+            <div class="form-group" *ngIf="schedulesArray.length > 1">
+              <button
+                type="button"
+                class="delete-schedule-btn"
+                (click)="removeSchedule(i)"
+                title="Eliminar horario"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label [for]="'notes-' + i">Notas (opcional)</label>
+            <textarea
+              id="notes-{{ i }}"
+              formControlName="notes"
+              placeholder="Ej: Tomar con comida, con agua abundante"
+            ></textarea>
+          </div>
+
+          <!-- Reminder Configuration -->
+          <div [formGroupName]="'reminder'" class="reminder-section">
+            <div class="reminder-header">
+
+              <h4>Recordatorio de Medicación</h4>
+              <span class="reminder-badge" *ngIf="schedule.get('reminder.enabled')?.value" [ngClass]="'enabled'">✓ Activo</span>
+            </div>
+
+            <div class="reminder-content">
+              <div class="reminder-toggle">
+                <label [for]="'reminder-enabled-' + i" class="toggle-label">
+                  <input
+                    [id]="'reminder-enabled-' + i"
+                    type="checkbox"
+                    formControlName="enabled"
+                    class="toggle-input"
+                  />
+                  <span class="toggle-switch"></span>
+                  <span class="toggle-text">Habilitar recordatorio de medicación</span>
+                </label>
+              </div>
+
+              <div class="reminder-time-selector" *ngIf="schedule.get('reminder.enabled')?.value">
+                <p class="reminder-time-label">⏰ ¿Cuándo recibir el recordatorio?</p>
+                <select id="reminder-minutes-{{ i }}" formControlName="minutesBefore" class="reminder-select">
+                  <option [value]="5">5 minutos antes</option>
+                  <option [value]="10">10 minutos antes</option>
+                  <option [value]="15">15 minutos antes</option>
+                  <option [value]="30">30 minutos antes</option>
+                  <option [value]="60">1 hora antes</option>
+                  <option [value]="120">2 horas antes</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dates Section -->
+    <section class="form-section">
+      <h2>Duración del Tratamiento</h2>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="startDate">Fecha de Inicio *</label>
+          <input id="startDate" type="date" formControlName="startDate" />
+          <span class="error" *ngIf="form.get('startDate')?.errors && (form.get('startDate')?.touched || submitted)">Campo requerido</span>
+        </div>
+
+        <div class="form-group">
+          <label for="endDate">Fecha de Término (opcional)</label>
+          <input id="endDate" type="date" formControlName="endDate" />
+          <p class="hint">Dejar en blanco si el tratamiento no tiene fecha de término definida</p>
+        </div>
+      </div>
+
+      <div class="form-group checkbox">
+        <input id="isActive" type="checkbox" formControlName="isActive" />
+        <label for="isActive">Medicación activa</label>
+      </div>
+    </section>
+
+    <!-- Form Actions -->
+    <div class="form-actions">
+      <button type="button" class="btn-cancel" (click)="onCancel()">Cancelar</button>
+      <button type="submit" class="btn-submit" [disabled]="!form.valid || submitting">
+        {{ submitting ? 'Guardando...' : editMode ? 'Actualizar' : 'Crear' }} Medicación
+      </button>
+    </div>
+  </form>
+
+  <div class="loading" *ngIf="loading">

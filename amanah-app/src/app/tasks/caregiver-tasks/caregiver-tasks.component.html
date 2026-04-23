@@ -1,0 +1,116 @@
+<div class="caregiver-tasks-container">
+  <div class="tasks-header">
+    <div class="header-content">
+      <h1 class="page-title">Mis tareas</h1>
+      <p class="page-subtitle">Tareas pendientes asignadas a ti</p>
+    </div>
+  </div>
+
+  <!-- Contenido de tareas -->
+  <div class="tasks-content" *ngIf="!loading">
+    <div *ngIf="myTasks.length === 0" class="empty-state">
+      <div class="empty-icon">Sin tareas urgentes</div>
+      <p class="empty-title">¡Sin tareas pendientes!</p>
+      <p class="empty-subtitle">No tienes tareas pendientes en este momento</p>
+    </div>
+
+    <div *ngIf="myTasks.length > 0" class="tasks-list">
+      <!-- Tareas urgentes primero -->
+      <div class="urgent-section" *ngIf="getUrgentTasks().length > 0">
+        <h2 class="section-title">⚡ Urgentes</h2>
+        <div class="urgent-tasks">
+          <div
+            class="task-card urgent"
+            *ngFor="let task of getUrgentTasks()"
+          >
+            <div class="task-card-header">
+              <h3 class="task-title">{{ task.title }}</h3>
+              <span
+                class="priority-badge"
+                [style.color]="getTaskColor(task.priority)"
+              >
+                {{ task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja' }}
+              </span>
+            </div>
+
+            <p class="task-description" *ngIf="task.description">
+              {{ task.description }}
+            </p>
+
+            <div class="task-meta">
+              <span class="due-date">
+                {{ getDueDateLabel(task.dueDate) }}
+              </span>
+              <span class="due-time" *ngIf="task.dueTime">
+                {{ task.dueTime }}
+              </span>
+            </div>
+
+            <div class="task-actions">
+              <button class="btn-complete" (click)="completeTask(task.id)">
+                Completar
+              </button>
+              <button class="btn-edit" (click)="editTask(task.id)">
+                Editar
+              </button>
+              <button class="btn-delete" (click)="deleteTask(task.id)">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Otras tareas pendientes -->
+      <div class="pending-section" *ngIf="getNonUrgentTasks().length > 0">
+        <h2 class="section-title">Otras tareas</h2>
+        <div class="pending-tasks">
+          <div
+            class="task-card"
+            *ngFor="let task of getNonUrgentTasks()"
+          >
+            <div class="task-card-header">
+              <h3 class="task-title">{{ task.title }}</h3>
+              <span
+                class="priority-badge"
+                [style.color]="getTaskColor(task.priority)"
+              >
+                {{ task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja' }}
+              </span>
+            </div>
+
+            <p class="task-description" *ngIf="task.description">
+              {{ task.description }}
+            </p>
+
+            <div class="task-meta">
+              <span class="due-date">
+                {{ getDueDateLabel(task.dueDate) }}
+              </span>
+              <span class="due-time" *ngIf="task.dueTime">
+                {{ task.dueTime }}
+              </span>
+            </div>
+
+            <div class="task-actions">
+              <button class="btn-complete" (click)="completeTask(task.id)">
+                Completar
+              </button>
+              <button class="btn-edit" (click)="editTask(task.id)">
+                Editar
+              </button>
+              <button class="btn-delete" (click)="deleteTask(task.id)">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado de carga -->
+  <div class="loading-state" *ngIf="loading">
+    <p>Cargando tareas...</p>
+  </div>
+</div>

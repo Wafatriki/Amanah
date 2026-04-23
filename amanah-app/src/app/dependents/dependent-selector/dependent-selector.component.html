@@ -1,0 +1,89 @@
+<div class="selector-wrapper">
+  @if (!loading) {
+    <div class="selector-container">
+      <!-- Main content -->
+      <div class="selector-content">
+        <h2 class="selector-title">Selecciona dependiente:</h2>
+
+        <!-- Search Bar -->
+        @if (dependents.length > 1) {
+          <div class="search-container">
+            <input
+              type="text"
+              class="search-input"
+              placeholder="Buscar..."
+              [(ngModel)]="searchQuery"
+              (input)="onSearchChange(searchQuery)"
+              aria-label="Buscar dependiente"
+            />
+            @if (searchQuery) {
+              <button
+                class="clear-search"
+                (click)="clearSearch()"
+                aria-label="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            }
+          </div>
+        }
+
+        <!-- Dependents cards -->
+        @if (dependents.length > 0) {
+          <div class="dependents-grid">
+            @for (dependent of filteredDependents; track dependent.id) {
+              <button class="dependent-card"
+                      type="button"
+                      (click)="selectDependent(dependent)"
+                      [attr.aria-label]="'Ver detalles de ' + dependent.name">
+                <!-- Card Image/Avatar -->
+                <div class="card-image">
+                  @if (dependent.image) {
+                    <img [src]="dependent.image"
+                         [alt]="dependent.name"
+                         class="card-img">
+                  } @else {
+                    <div class="placeholder">
+                      <img src="/assets/icons/usuario.png" alt="User placeholder" class="placeholder-icon">
+                    </div>
+                  }
+                </div>
+
+                <!-- Card Content -->
+                <div class="card-content">
+                  <h3 class="card-name">{{ dependent.name }}</h3>
+                </div>
+              </button>
+            }
+          </div>
+
+          <!-- No results message -->
+          @if (filteredDependents.length === 0 && searchQuery) {
+            <div class="no-results">
+              <p>No se encontraron dependientes con ese nombre</p>
+              <button class="clear-btn" (click)="clearSearch()">Limpiar búsqueda</button>
+            </div>
+          }
+
+          <!-- Create another dependent -->
+          <div class="create-another">
+            <button class="create-link" (click)="openCreateForm()">
+              Crear otro perfil dependiente
+            </button>
+          </div>
+        } @else {
+          <div class="no-dependents">
+            <button class="create-btn" (click)="openCreateForm()">
+              Agregar dependiente
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="loading-container">
+      <div class="spinner"></div>
+      <p class="loading-text">Cargando dependientes...</p>
+    </div>
+  }
+</div>

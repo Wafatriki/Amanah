@@ -1,0 +1,11 @@
+<div class="layout-container" [class.with-sidebar]="showSidebar()">
+  <app-sidebar *ngIf="showSidebar()"></app-sidebar>
+  <app-header></app-header>
+
+  <main class="main-content" [class.full-height]="isFullHeightRoute()">
+    <router-outlet></router-outlet>
+  </main>
+
+  <app-bottom-nav *ngIf="showBottomNav()"></app-bottom-nav>
+  <app-feedback-host></app-feedback-host>
+</div>

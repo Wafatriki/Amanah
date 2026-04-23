@@ -1,0 +1,21 @@
+<nav class="bottom-nav">
+  <div
+    *ngFor="let item of filteredNavItems"
+    class="bottom-nav-item"
+    [class.active]="activeItem === item.path"
+    (click)="navigate(item.path)"
+  >
+    <button
+      type="button"
+      class="bottom-nav-button"
+      [routerLink]="item.path"
+      [attr.aria-current]="activeItem === item.path ? 'page' : null"
+      [attr.aria-label]="item.label"
+    >
+      <div class="bottom-nav-icon">
+        <img [src]="item.icon" [alt]="item.label" class="nav-icon-img">
+      </div>
+      <div class="bottom-nav-label">{{ item.label }}</div>
+    </button>
+  </div>
+</nav>

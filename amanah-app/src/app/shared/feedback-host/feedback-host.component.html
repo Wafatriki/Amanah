@@ -1,0 +1,19 @@
+<app-notification-container></app-notification-container>
+
+@if (confirm$ | async; as confirm) {
+  <div class="feedback-overlay" (click)="close()">
+    <div class="feedback-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2 class="feedback-title">{{ confirm.title }}</h2>
+      <p class="feedback-message">{{ confirm.message }}</p>
+
+      <div class="feedback-actions">
+        <button type="button" class="btn btn-secondary" (click)="decline()">
+          {{ confirm.cancelText || 'Cancelar' }}
+        </button>
+        <button type="button" class="btn" [class.btn-delete]="confirm.dangerous" [class.btn-primary]="!confirm.dangerous" (click)="accept()">
+          {{ confirm.confirmText || 'Aceptar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,185 @@
+<div class="medication-list-container">
+  <!-- Header -->
+  <div class="medication-list-header">
+    <div class="header-content">
+      <h1 class="page-title">Medicaciones</h1>
+      <p class="page-subtitle">Gestiona todas las medicaciones del dependiente</p>
+    </div>
+    @if (canCreateMedication()) {
+      <button class="btn-primary" (click)="createNewMedication()" [disabled]="loading">
+        <img src="/assets/icons/mas.png" alt="Nueva" class="btn-icon">
+        Nueva Medicación
+      </button>
+    }
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading-spinner">
+    <p>Cargando medicaciones...</p>
+  </div>
+
+  <!-- No medications -->
+  <div *ngIf="!loading && medications.length === 0" class="empty-state">
+    <div class="empty-icon"></div>
+    <p class="empty-title">Sin medicaciones registradas</p>
+    <p class="empty-subtitle">No hay medicaciones registradas para {{ activeDependentName }}.</p>
+    @if (canCreateMedication()) {
+      <button class="btn-primary" (click)="createNewMedication()">
+        <img src="/assets/icons/mas.png" alt="Agregar" class="btn-icon">
+        Agregar Primera Medicación
+      </button>
+    }
+  </div>
+
+  <!-- Tabs / Controls -->
+  <div *ngIf="!loading && medications.length > 0" class="controls-section">
+    <div class="filter-buttons">
+      <button class="filter-btn" [class.active]="showCalendar" (click)="toggleCalendar()">
+        Calendario
+      </button>
+    </div>
+  </div>
+
+  <!-- Calendar View -->
+  <div *ngIf="!loading && showCalendar && medications.length > 0" class="calendar-view-section">
+    <app-medication-calendar
+      [medications]="medications"
+      [dependentId]="activeDependentId!"
+    ></app-medication-calendar>
+  </div>
+
+  <!-- History View -->
+  <div *ngIf="!loading && showHistory && selectedMedicationForHistory" class="history-view-section">
+    <div class="history-header">
+      <h3>{{ selectedMedicationForHistory.name }}</h3>
+      <button (click)="closeHistory()" class="close-btn" title="Cerrar">×</button>
+    </div>
+    <app-medication-history
+      [medicationId]="selectedMedicationForHistory.id!"
+      [dependentId]="activeDependentId!"
+      [medication]="selectedMedicationForHistory"
+    ></app-medication-history>
+  </div>
+
+  <!-- Today's Medications Section -->
+  <div *ngIf="!loading && todaysMedications.length > 0" class="todays-section">
+    <h2 class="section-title">Medicaciones de Hoy</h2>
+    <div class="todays-grid">
+      <div *ngFor="let intake of todaysMedications; trackBy: trackByIntakeId" class="today-medication-card">
+        <div class="time">{{ intake.scheduleTime }}</div>
+        <div class="name">{{ intake.medicationName }}</div>
+        <div class="status" [class]="intake.completed ? 'completed' : 'pending'">
+          <input
+            type="checkbox"
+            [checked]="intake.completed"
+            (change)="onIntakeCheckChange($event, intake.medicationId, intake.scheduleIndex)"
+            [disabled]="completingScheduleId === `${intake.medicationId}-${intake.scheduleIndex}`"
+          />
+          <span class="status-text">{{ intake.completed ? 'Tomada' : 'Pendiente' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Medications -->
+  <div *ngIf="!loading && medications.length > 0" class="medications-section">
+    <div *ngFor="let medication of medications; trackBy: trackByMedicationId" class="medication-card">
+      <!-- Medication Header -->
+      <div class="medication-header">
+        <div class="medication-title">
+          <img [src]="getMedicationIcon(medication.presentation)" [alt]="medication.presentation + ' icon'" class="icon">
+          <div>
+            <h3>{{ medication.name }}</h3>
+            <p class="presentation">{{ medication.presentation }}</p>
+          </div>
+        </div>
+        <div class="medication-actions">
+          <button
+            class="btn-icon"
+            title="Ver historial"
+            (click)="openMedicationHistory(medication)"
+          >
+            <img src="/assets/icons/historial.png" alt="Historial" class="btn-icon-img">
+          </button>
+          @if (canEditMedication()) {
+            <button
+              class="btn-icon"
+              title="Editar"
+              (click)="editMedication(medication.id!)"
+            >
+              <img src="/assets/icons/lapiz.png" alt="Editar" class="btn-icon-img">
+            </button>
+          }
+          @if (canDeleteMedication()) {
+            <button class="btn-icon danger" title="Eliminar" (click)="deleteMedication(medication.id!)">
+              <img src="/assets/icons/basura.png" alt="Eliminar" class="btn-icon-img">
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Medication Info -->
+      <div class="medication-info">
+        <div class="info-item">
+          <span class="label">Dosis:</span>
+          <span class="value">{{ medication.dose }}</span>
+        </div>
+        <div *ngIf="medication.activeIngredient" class="info-item">
+          <span class="label">Principio Activo:</span>
+          <span class="value">{{ medication.activeIngredient }}</span>
+        </div>
+        <div *ngIf="medication.indication" class="info-item">
+          <span class="label">Indicación:</span>
+          <span class="value">{{ medication.indication }}</span>
+        </div>
+        <div *ngIf="medication.prescribedBy" class="info-item">
+          <span class="label">Prescrito por:</span>
+          <span class="value">{{ medication.prescribedBy }}</span>
+        </div>
+      </div>
+
+      <!-- Schedules -->
+      <div class="schedules">
+        <h4>Horarios</h4>
+        <div class="schedule-list">
+          <div
+            *ngFor="let schedule of medication.schedules; let i = index; trackBy: trackByScheduleIndex"
+            class="schedule-item"
+          >
+            <div class="schedule-time">
+              <span class="time-badge">{{ schedule.time }}</span>
+            </div>
+            <div class="schedule-info">
+              <div class="dosage">{{ schedule.dosage }}</div>
+              <div *ngIf="schedule.notes" class="notes">{{ schedule.notes }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dates -->
+      <div class="medication-dates">
+        <span class="start-date">Desde: {{ medication.startDate | date: 'dd/MM/yyyy' }}</span>
+        <span *ngIf="medication.endDate" class="end-date">Hasta: {{ medication.endDate | date: 'dd/MM/yyyy' }}</span>
+        <span *ngIf="!medication.endDate" class="end-date indefinite">Sin fecha de término</span>
+      </div>
+
+      <!-- Observations -->
+      <div *ngIf="medication.observations.length > 0" class="observations">
+        <h4>Observaciones</h4>
+        <div class="observation-list">
+          <div *ngFor="let obs of medication.observations; trackBy: trackByObservationIndex" class="observation-item">
+            <div class="observation-meta">
+              <strong>{{ obs.userName }}</strong>
+              <span class="date">{{ obs.date | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <p>{{ obs.text }}</p>
+          </div>
+    </div>
+  </div>
+</div>

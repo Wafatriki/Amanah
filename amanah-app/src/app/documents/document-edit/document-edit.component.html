@@ -1,0 +1,90 @@
+<div class="edit-backdrop" (click)="onBackdropClick($event)">
+  <div class="edit-modal">
+    <!-- Header -->
+    <div class="edit-header">
+      <h2>Editar Documento</h2>
+      <button class="close-btn" (click)="close()">×</button>
+    </div>
+
+    <!-- Formulario -->
+    <div class="edit-form">
+      <!-- Título -->
+      <div class="form-group">
+        <label for="editTitle">Título:</label>
+        <input
+          id="editTitle"
+          type="text"
+          [(ngModel)]="editTitle"
+          placeholder="Título del documento"
+          class="form-input"
+        />
+      </div>
+
+      <!-- Descripción -->
+      <div class="form-group">
+        <label for="editDescription">Descripción:</label>
+        <textarea
+          id="editDescription"
+          [(ngModel)]="editDescription"
+          placeholder="Descripción opcional"
+          class="form-textarea"
+          rows="4"
+        ></textarea>
+      </div>
+
+      <!-- Tipo de documento -->
+      <div class="form-group">
+        <label for="editDocumentType">Tipo de Documento:</label>
+        <select id="editDocumentType" [(ngModel)]="editDocumentType" class="form-select">
+          @for (type of documentTypes; track type.value) {
+            <option [value]="type.value">{{ type.label }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Privado -->
+      <div class="form-group checkbox-group">
+        <label for="editIsPrivate" class="checkbox-label">
+          <input
+            id="editIsPrivate"
+            type="checkbox"
+            [(ngModel)]="editIsPrivate"
+          />
+          Documento Privado
+        </label>
+        <p class="checkbox-help">Solo tú y el dependiente podrán ver este documento</p>
+      </div>
+
+      <!-- Errores y éxito -->
+      @if (errorMessage) {
+        <div class="alert alert-error">
+          Error: {{ errorMessage }}
+        </div>
+      }
+
+      @if (successMessage) {
+        <div class="alert alert-success">
+          Éxito: {{ successMessage }}
+        </div>
+      }
+    </div>
+
+    <!-- Footer con botones -->
+    <div class="edit-footer">
+      <button class="btn btn-secondary" (click)="close()" [disabled]="isSaving">
+        Cancelar
+      </button>
+      <button
+        class="btn btn-primary"
+        (click)="saveChanges()"
+        [disabled]="isSaving"
+      >
+        @if (isSaving) {
+          ⏳ Guardando...
+        } @else {
+          Guardar Cambios
+        }
+      </button>
+    </div>
+  </div>
+</div>

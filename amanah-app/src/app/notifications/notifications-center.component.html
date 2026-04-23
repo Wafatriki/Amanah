@@ -1,0 +1,49 @@
+<div class="notifications-container">
+  <!-- Header -->
+  <div class="notifications-header">
+    <div class="header-content">
+      <h1 class="header-title">Centro de Notificaciones</h1>
+      <p class="header-subtitle">Historial de alertas del sistema</p>
+    </div>
+  </div>
+
+
+
+  <!-- Notifications List -->
+  <div class="notifications-list" *ngIf="notifications.length > 0; else emptyState">
+    <!-- Clear All Button -->
+    <button class="btn-clear-all" (click)="clearAll()">Limpiar todo</button>
+
+    <!-- Notification Items -->
+    <div
+      class="notification-item"
+      *ngFor="let notification of notifications"
+      [@notificationAnimation]
+      [ngClass]="'notification-' + notification.type"
+    >
+      <div class="notification-content">
+        <div class="notification-header">
+          <img class="notification-icon" [src]="getIconPath(notification.type)" [alt]="notification.title" />
+          <h4 class="notification-title">{{ notification.title }}</h4>
+          <span class="notification-time">{{ notification.timestamp | date: 'short' }}</span>
+        </div>
+        <p class="notification-body">{{ notification.body }}</p>
+      </div>
+      <button class="btn-delete" (click)="deleteNotification(notification.id)" aria-label="Eliminar notificación">
+        ×
+      </button>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <ng-template #emptyState>
+    <div class="empty-state">
+      <div class="empty-icon">�</div>
+      <h3>Sin notificaciones</h3>
+      <p>Aquí aparecerán los alertas cuando se creen tareas, citas o medicaciones.</p>
+      <div class="empty-hint">
+        <p>Tip: Crea una nueva tarea para ver una notificación de ejemplo</p>
+      </div>
+    </div>
+  </ng-template>
+</div>

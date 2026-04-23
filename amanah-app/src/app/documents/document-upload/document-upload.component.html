@@ -1,0 +1,134 @@
+<div class="document-upload">
+  <div class="upload-container">
+    <!-- Área de dragdrop -->
+    <div
+      class="dragdrop-area"
+      (dragover)="onDragOver($event)"
+      (drop)="onDrop($event)"
+      [class.has-file]="selectedFile"
+    >
+      @if (!selectedFile) {
+        <div class="dragdrop-content">
+          Subir Archivo
+          <p class="upload-text">Arrastra un archivo aquí o</p>
+          <label class="file-input-label">
+            selecciona uno
+            <input
+              type="file"
+              class="file-input"
+              (change)="onFileSelected($event)"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+            />
+          </label>
+        </div>
+      } @else {
+        <div class="file-preview-container">
+          @if (filePreview) {
+            <img [src]="filePreview" alt="Vista previa" class="file-preview" />
+          } @else {
+            <span class="file-icon">{{ getFileIcon() }}</span>
+          }
+          <div class="file-info">
+            <p class="file-name">{{ selectedFile!.name }}</p>
+            <p class="file-size">{{ (selectedFile!.size / 1024).toFixed(2) }} KB</p>
+          </div>
+          <button
+            type="button"
+            class="remove-file-btn"
+            (click)="resetForm()"
+            [disabled]="isUploading"
+          >
+            ×
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Formulario de metadatos -->
+    @if (selectedFile) {
+      <div class="metadata-form">
+        <div class="form-group">
+          <label>Tipo de Documento</label>
+          <select [(ngModel)]="documentType" [disabled]="isUploading">
+            @for (type of documentTypes; track type.value) {
+              <option [value]="type.value">{{ type.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Título</label>
+          <input
+            type="text"
+            [(ngModel)]="documentTitle"
+            placeholder="Título del documento (opcional)"
+            [disabled]="isUploading"
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea
+            [(ngModel)]="documentDescription"
+            placeholder="Descripción adicional (opcional)"
+            rows="3"
+            [disabled]="isUploading"
+          ></textarea>
+        </div>
+
+        <div class="form-group checkbox">
+          <label>
+            <input
+              type="checkbox"
+              [(ngModel)]="isPrivate"
+              [disabled]="isUploading"
+            />
+            Documento privado (solo acceso del dependiente)
+          </label>
+        </div>
+      </div>
+    }
+
+    <!-- Barra de progreso -->
+    @if (isUploading) {
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress" [style.width.%]="uploadProgress"></div>
+        </div>
+        <p class="progress-text">Subiendo... {{ uploadProgress }}%</p>
+      </div>
+    }
+
+    <!-- Mensajes -->
+    @if (errorMessage) {
+      <div class="alert alert-error">
+        Error: {{ errorMessage }}
+      </div>
+    }
+    @if (successMessage) {
+      <div class="alert alert-success">
+        Éxito: {{ successMessage }}
+      </div>
+    }
+
+    <!-- Botones -->
+    @if (selectedFile && !isUploading) {
+      <div class="action-buttons">
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="uploadFile()"
+        >
+          Subir Documento
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="cancel()"
+        >
+          Cancelar
+        </button>
+      </div>
+    }
+  </div>
+</div>

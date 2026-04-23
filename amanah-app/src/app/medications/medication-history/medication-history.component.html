@@ -1,0 +1,96 @@
+<div class="medication-history-container">
+  <div class="history-header">
+    <h2>Historial de {{ medication.name }}</h2>
+
+    <div class="date-range-selector">
+      <button
+        [class.active]="selectedDateRange === 'week'"
+        (click)="onDateRangeChange('week')"
+        class="range-btn">
+        Última Semana
+      </button>
+      <button
+        [class.active]="selectedDateRange === 'month'"
+        (click)="onDateRangeChange('month')"
+        class="range-btn">
+        Último Mes
+      </button>
+      <button
+        [class.active]="selectedDateRange === 'all'"
+        (click)="onDateRangeChange('all')"
+        class="range-btn">
+        Todo
+      </button>
+    </div>
+  </div>
+
+  <div class="history-stats">
+    <div class="stat-card completed">
+      <div class="stat-value">{{ completedCount }}</div>
+      <div class="stat-label">Completadas</div>
+    </div>
+    <div class="stat-card pending">
+      <div class="stat-value">{{ pendingCount }}</div>
+      <div class="stat-label">Pendientes</div>
+    </div>
+    <div class="stat-card missed">
+      <div class="stat-value">{{ missedCount }}</div>
+      <div class="stat-label">Perdidas</div>
+    </div>
+    <div class="stat-card percentage">
+      <div class="stat-value">{{ getCompletionPercentage() }}%</div>
+      <div class="stat-label">Cumplimiento</div>
+    </div>
+  </div>
+
+  <div class="history-progress">
+    <div class="progress-bar">
+      <div class="progress-fill" [style.width.%]="getCompletionPercentage()"></div>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-spinner">
+    <p>Cargando historial...</p>
+  </div>
+
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && historicalSchedules.length === 0" class="empty-state">
+    <p>No hay registros de medicación en este período</p>
+  </div>
+
+  <div *ngIf="!loading && historicalSchedules.length > 0" class="history-list">
+    <div *ngFor="let historyEntry of historicalSchedules" class="history-day">
+      <div class="day-header">{{ formatDate(historyEntry.date) }}</div>
+
+      <div *ngFor="let schedule of historyEntry.schedules" class="history-item" [class.completed]="schedule.completed">
+        <div class="history-date">
+          <div class="time">{{ schedule.time }}</div>
+        </div>
+
+        <div class="history-details">
+          <div class="dosage">{{ schedule.dosage }}</div>
+          <div *ngIf="schedule.notes" class="notes">{{ schedule.notes }}</div>
+        </div>
+
+        <div class="history-status">
+          <span *ngIf="schedule.completed" class="badge completed">
+            Completado
+          </span>
+          <span *ngIf="!schedule.completed && isScheduleMissed(historyEntry)" class="badge missed">
+            Perdido
+          </span>
+          <span *ngIf="!schedule.completed && !isScheduleMissed(historyEntry)" class="badge pending">
+            ⏱ Pendiente
+          </span>
+        </div>
+
+        <div *ngIf="schedule.completedAt" class="completed-time">
+          Tomado a las {{ schedule.completedAt | date:'HH:mm' }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

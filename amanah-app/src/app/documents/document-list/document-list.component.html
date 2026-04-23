@@ -1,0 +1,119 @@
+<div class="document-list">
+  <div class="list-header">
+    <h2>Documentos Clínicos</h2>
+  </div>
+
+  <!-- Filtros y búsqueda -->
+  <div class="filters-section">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Buscar documentos..."
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange()"
+      />
+      <span class="search-icon">�</span>
+    </div>
+
+    <div class="filter-box">
+      <label>Filtrar por tipo:</label>
+      <select [(ngModel)]="filterType" (ngModelChange)="onFilterChange()">
+        <option value="all">Todos</option>
+        @for (type of documentTypeList; track type.value) {
+          <option [value]="type.value">{{ type.label }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- Estado de carga -->
+  @if (isLoading) {
+    <div class="loading">
+      <span class="spinner">⏳</span>
+      <p>Cargando documentos...</p>
+    </div>
+  }
+
+  <!-- Errores -->
+  @if (errorMessage) {
+    <div class="alert alert-error">
+      Error: {{ errorMessage }}
+    </div>
+  }
+
+  <!-- Lista de documentos -->
+  <div class="documents-container">
+    @if (!isLoading && filteredDocuments.length === 0) {
+      <div class="empty-state">
+        <span class="empty-icon">Sin documentos</span>
+        <p>No hay documentos{{ searchTerm ? ' que coincidan con tu búsqueda' : '' }}</p>
+      </div>
+    } @else if (!isLoading) {
+      <div class="documents-list">
+        @for (document of filteredDocuments; track document.id) {
+          <div class="document-row">
+            <!-- Icono del documento -->
+            <div class="document-icon-col">
+              <img [src]="getDocumentIcon(document.documentType)" [alt]="getDocumentTypeLabel(document.documentType) + ' icon'" class="document-icon">
+            </div>
+
+            <!-- Información del documento -->
+            <div class="document-info-col">
+              <div class="document-title">{{ document.title || document.fileName }}</div>
+              <div class="document-meta">
+                <span class="meta-item type">{{ getDocumentTypeLabel(document.documentType) }}</span>
+                <span class="meta-item">{{ (document.fileSize / 1024).toFixed(2) }} KB</span>
+                <span class="meta-item">{{ document.uploadDate | date: 'dd/MM/yyyy' }}</span>
+                @if (document.isPrivate) {
+                  <span class="meta-item" style="color: #e65100;">Privado</span>
+                }
+              </div>
+              @if (document.description) {
+                <div class="document-description">{{ document.description }}</div>
+              }
+            </div>
+
+            <!-- Acciones del documento -->
+            <div class="document-actions-col">
+              <button class="action-btn view-btn" (click)="viewDocument(document)" title="Ver documento">
+                <img src="/assets/icons/certificado.png" alt="Ver" class="action-icon">
+              </button>
+              <button class="action-btn download-btn" (click)="downloadDocument(document)" title="Descargar documento">
+                <img src="/assets/icons/descargar.png" alt="Descargar" class="action-icon">
+              </button>
+              @if (canEditDocument(document)) {
+                <button class="action-btn edit-btn" (click)="editDocument(document)" title="Editar documento">
+                  <img src="/assets/icons/tableta (1).png" alt="Editar" class="action-icon">
+                </button>
+              }
+              @if (canDeleteDocument(document)) {
+                <button class="action-btn delete-btn" (click)="deleteDocument(document)" title="Eliminar documento">
+                  <img src="/assets/icons/basura.png" alt="Eliminar" class="action-icon">
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Modal de vista previa -->
+  @if (selectedDocument) {
+    <app-document-preview
+      [document]="selectedDocument"
+      [dependentId]="dependentId"
+      (closed)="closePreview()"
+    ></app-document-preview>
+  }
+
+  <!-- Modal de edición -->
+  @if (documentToEdit) {
+    <app-document-edit
+      [document]="documentToEdit"
+      [dependentId]="dependentId"
+      (closed)="closeEdit()"
+      (updated)="onDocumentUpdated($event)"
+    ></app-document-edit>
+  }
+</div>

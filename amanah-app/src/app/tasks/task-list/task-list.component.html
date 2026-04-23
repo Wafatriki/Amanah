@@ -1,0 +1,311 @@
+<div class="task-list-container">
+  <div class="task-list-header">
+    <div class="header-content">
+      <h1 class="page-title">Tareas</h1>
+      <p class="page-subtitle">Gestiona todas las tareas del dependiente</p>
+    </div>
+    @if (canCreateTask()) {
+      <button class="btn-create-task" (click)="createNewTask()">
+        + Nueva tarea
+      </button>
+    }
+  </div>
+
+  <!-- Controles de filtro -->
+  <div class="controls-section">
+    <!-- Pestañas de tareas (Hoy / Otros días) + Botón Filtros -->
+    <div class="task-tabs-wrapper">
+      <div class="task-tabs">
+        <button
+          class="tab-btn"
+          [class.active]="activeTab === 'today'"
+          (click)="setActiveTab('today')"
+        >
+          Hoy
+        </button>
+        <button
+          class="tab-btn"
+          [class.active]="activeTab === 'other'"
+          (click)="setActiveTab('other')"
+        >
+          Otros días
+        </button>
+      </div>
+      <button class="btn-filters" (click)="toggleFilters()" [class.active]="showFilters">
+        {{ showFilters ? '▼' : '▶' }} Filtros
+      </button>
+    </div>
+
+    <!-- Panel de filtros colapsible -->
+    <div class="filters-panel" *ngIf="showFilters">
+      <!-- Filtro Mis tareas vs Todas -->
+      <div class="filters-row">
+        <div class="filter-section">
+          <div class="filter-label">Tareas</div>
+          <div class="filter-buttons status-filters">
+            <button
+              class="filter-btn"
+              [class.active]="!showAllTasks"
+              (click)="toggleShowAllTasks()"
+            >
+              Mis tareas
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="showAllTasks"
+              (click)="toggleShowAllTasks()"
+            >
+              Todas las tareas
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros de estado (Todas, Pendientes, Completadas, Vencidas) -->
+      <div class="filters-row">
+        <div class="filter-section">
+          <div class="filter-label">Estado de tareas</div>
+          <div class="filter-buttons status-filters">
+            <button
+              class="filter-btn"
+              [class.active]="selectedFilter === 'all'"
+              (click)="setFilter('all')"
+            >
+              Todas ({{ tasks.length }})
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="selectedFilter === 'pending'"
+              (click)="setFilter('pending')"
+            >
+              Pendientes ({{ getPendingCount() }})
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="selectedFilter === 'completed'"
+              (click)="setFilter('completed')"
+            >
+              Completadas ({{ getCompletedCount() }})
+            </button>
+            <button
+              class="filter-btn"
+              [class.active]="selectedFilter === 'overdue'"
+              (click)="setFilter('overdue')"
+            >
+              Vencidas ({{ getOverdueCount() }})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtro por cuidador -->
+      <div class="filters-row">
+        <div class="filter-section">
+          <div class="filter-label">Filtrar por cuidador</div>
+          <div class="filter-buttons caregiver-filters">
+            <button
+              class="filter-btn"
+              [class.active]="selectedCaregiverId === null"
+              (click)="setSelectedCaregiver(null)"
+            >
+              Todos
+            </button>
+            <button
+              *ngFor="let caregiver of caregivers"
+              class="filter-btn"
+              [class.active]="selectedCaregiverId === caregiver.userId"
+              (click)="setSelectedCaregiver(caregiver)"
+            >
+              {{ caregiver.name }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ordenar por -->
+      <div class="filters-row sort-row">
+        <div class="filter-section">
+          <div class="filter-label">Ordenar</div>
+          <select class="sort-select" [value]="sortBy" (change)="setSortBy($any($event.target).value)">
+            <option value="dueDate">Por fecha</option>
+            <option value="priority">Por prioridad</option>
+            <option value="createdAt">Por creación</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de tareas -->
+  <div class="tasks-content" *ngIf="!loading">
+    <div *ngIf="filteredTasks.length === 0" class="empty-state">
+      <div class="empty-icon">Sin tareas</div>
+      <p class="empty-title">No hay tareas</p>
+      <p class="empty-subtitle">
+        {{ selectedFilter === 'all' ? 'Crea una nueva tarea para empezar' : 'No hay tareas en esta categoría' }}
+      </p>
+      <button *ngIf="selectedFilter === 'all' && canCreateTask()" class="btn-create-empty" (click)="createNewTask()">
+        Crear tarea
+      </button>
+    </div>
+
+    <div *ngIf="filteredTasks.length > 0" class="tasks-list">
+      <!-- Tareas por prioridad -->
+      <div class="priority-section" *ngFor="let priority of ['high', 'medium', 'low']">
+        <div class="priority-group" *ngIf="getTasksByPriority(priority).length > 0">
+          <div class="priority-header">
+            <div
+              class="priority-indicator"
+              [style.backgroundColor]="getTaskColor(priority)"
+            ></div>
+            <h3 class="priority-title">
+              {{ priority === 'high' ? 'Alta Prioridad' : priority === 'medium' ? 'Prioridad Media' : 'Baja Prioridad' }}
+            </h3>
+            <span class="task-count">({{ getTasksByPriority(priority).length }})</span>
+          </div>
+
+          <div class="task-items">
+            <div
+              class="task-item"
+              [class.completed]="task.status === 'completed'"
+              [class.overdue]="task.status === 'overdue'"
+              [class.my-task]="isMyTask(task)"
+              *ngFor="let task of getTasksByPriority(priority)"
+              (click)="showDetails(task)"
+              role="button"
+              tabindex="0"
+            >
+              <div class="task-checkbox">
+                @if (canCompleteTask()) {
+                  <input
+                    type="checkbox"
+                    [checked]="task.status === 'completed'"
+                    (change)="completeTask(task.id)"
+                    class="checkbox"
+                  />
+                }
+              </div>
+
+              <div class="task-content">
+                <h4 class="task-title">{{ task.title }}</h4>
+                <p class="task-description" *ngIf="task.description">
+                  {{ task.description }}
+                </p>
+
+                <div class="task-meta">
+                  <span class="task-status" [style.color]="getTaskColor(task.priority)">
+                    {{ priority === 'high' ? 'Alta' : priority === 'medium' ? 'Media' : 'Baja' }}
+                  </span>
+                  <span class="task-date">{{ getDueDateLabel(task.dueDate) }}</span>
+                  <span class="task-assignees" *ngIf="task.assignedTo && task.assignedTo.length > 0">
+                    <span *ngFor="let assignee of task.assignedTo" class="assignee-tag" [title]="'ID: ' + assignee.userId">{{ getAssigneeName(assignee.userId) }}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div class="task-actions">
+                @if (canEditTask()) {
+                  <button
+                    class="btn-action btn-edit"
+                    (click)="editTask(task.id)"
+                    title="Editar tarea"
+                  >
+                    <img src="/assets/icons/lapiz.png" alt="Editar" class="action-icon">
+                  </button>
+                }
+                @if (canDeleteTask()) {
+                  <button
+                    class="btn-action btn-delete"
+                    (click)="deleteTask(task.id)"
+                    title="Eliminar tarea"
+                  >
+                    <img src="/assets/icons/basura.png" alt="Eliminar" class="action-icon">
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado de carga -->
+  <div class="loading-state" *ngIf="loading">
+    <p>Cargando tareas...</p>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div *ngIf="showDetailModal && selectedTask" class="modal-overlay" (click)="closeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <h3>Detalles de la Tarea</h3>
+      <button class="close-btn" (click)="closeModal()" title="Cerrar">×</button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body">
+      <!-- Status Badge -->
+      <div class="status-badge-section">
+        <span class="status-badge" [ngClass]="'status-' + selectedTask.status">
+          {{ selectedTask.status === 'completed' ? 'Completada' : selectedTask.status === 'overdue' ? 'Vencida' : 'Pendiente' }}
+        </span>
+      </div>
+
+      <!-- Task Details -->
+      <div class="detail-section">
+        <h2 class="task-title-modal">{{ selectedTask.title }}</h2>
+
+        <div class="detail-row" *ngIf="selectedTask.description">
+          <span class="label">Descripción:</span>
+          <span class="value">{{ selectedTask.description }}</span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Prioridad:</span>
+          <span class="value priority-badge" [style.color]="getTaskColor(selectedTask.priority)">
+            {{ selectedTask.priority === 'high' ? 'Alta' : selectedTask.priority === 'medium' ? 'Media' : 'Baja' }}
+          </span>
+        </div>
+
+        <div class="detail-row">
+          <span class="label">Fecha Límite:</span>
+          <span class="value">{{ selectedTask.dueDate | date: 'dd/MM/yyyy' }}</span>
+        </div>
+
+        <div class="detail-row" *ngIf="selectedTask.assignedTo && selectedTask.assignedTo.length > 0">
+          <span class="label">Asignada A:</span>
+          <span class="value">{{ getAssignedToNames() }}</span>
+        </div>
+
+        <div class="detail-row" *ngIf="selectedTask.notes">
+          <span class="label">Notas:</span>
+          <span class="value">{{ selectedTask.notes }}</span>
+        </div>
+      </div>
+
+      <!-- Status Selector -->
+      <div class="status-section" *ngIf="selectedTask">
+        <label>Estado:</label>
+        <select
+          [value]="selectedTask.status"
+          (change)="updateTaskStatus(selectedTask, $any($event.target).value)"
+          class="status-select"
+        >
+          <option value="pending">Pendiente</option>
+          <option value="completed">Completada</option>
+          <option value="overdue">Vencida</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeModal()">Cerrar</button>
+      <button class="btn-delete" (click)="deleteTask(selectedTask.id)">Eliminar</button>
+      <button class="btn-primary" (click)="editTask(selectedTask.id)">Editar</button>
+    </div>
+  </div>
+</div>

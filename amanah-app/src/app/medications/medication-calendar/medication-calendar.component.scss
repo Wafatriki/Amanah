@@ -1,0 +1,570 @@
+$primary-color: #B8A5D6;
+$primary-dark: #a491c7;
+$gray-light: #f9f9f9;
+$gray-border: #f0f0f0;
+$text-dark: #333333;
+$text-gray: #666666;
+$weekend-bg: #f5f0fa;
+
+.medication-calendar-container {
+  width: 100%;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid $gray-border;
+
+  .nav-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: $gray-light;
+    border: 1px solid $gray-border;
+    border-radius: 6px;
+    font-size: 20px;
+    color: $text-gray;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: $primary-color;
+      color: white;
+      border-color: $primary-color;
+    }
+  }
+
+  .month-year {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+    font-weight: 600;
+    color: $text-dark;
+    text-transform: capitalize;
+
+    .today-btn {
+      padding: 6px 12px;
+      background-color: $primary-color;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: $primary-dark;
+      }
+    }
+  }
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 8px 0;
+
+  .weekday {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: $text-gray;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 0;
+  }
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 24px;
+}
+
+.calendar-day {
+  aspect-ratio: 1 / 1.2;
+  background-color: $gray-light;
+  border: 1px solid $gray-border;
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    border-color: $primary-color;
+    box-shadow: 0 4px 12px rgba(184, 165, 214, 0.15);
+  }
+
+  &.other-month {
+    background-color: #fafafa;
+    opacity: 0.4;
+  }
+
+  &.today {
+    background-color: rgba(184, 165, 214, 0.08);
+    border: 2px solid $primary-color;
+    box-shadow: 0 0 0 1px rgba(184, 165, 214, 0.2);
+  }
+
+  &.weekend {
+    background-color: $weekend-bg;
+  }
+
+  &.weekend.today {
+    background-color: rgba(184, 165, 214, 0.12);
+  }
+
+  .day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+
+    .day-number {
+      font-size: 14px;
+      font-weight: 700;
+      color: $text-dark;
+    }
+
+    .schedule-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 4px;
+      background-color: $primary-color;
+      color: white;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+  }
+
+  .day-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .no-schedules {
+      color: $text-gray;
+      font-size: 12px;
+      text-align: center;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .schedules-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 10px;
+
+      .schedule-item {
+        padding: 2px 4px;
+        background-color: rgba(184, 165, 214, 0.2);
+        border-radius: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+
+        &:hover {
+          background-color: rgba(184, 165, 214, 0.4);
+          box-shadow: 0 1px 3px rgba(184, 165, 214, 0.3);
+        }
+
+        .time {
+          font-weight: 600;
+          color: $primary-color;
+        }
+
+        .med-name {
+          font-size: 9px;
+          color: $text-dark;
+          font-weight: 500;
+        }
+      }
+
+      .more-schedules {
+        font-size: 9px;
+        color: $text-gray;
+        font-weight: 600;
+        padding: 2px 4px;
+      }
+    }
+
+    .completion-bar {
+      height: 3px;
+      background-color: $gray-border;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: auto;
+
+      .bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, $primary-color, $primary-dark);
+        transition: width 0.3s ease;
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    aspect-ratio: 1 / 1;
+    padding: 6px;
+
+    .day-header {
+      .day-number {
+        font-size: 12px;
+      }
+
+      .schedule-count {
+        min-width: 18px;
+        height: 18px;
+        font-size: 9px;
+      }
+    }
+
+    .day-content {
+      gap: 2px;
+
+      .schedules-list {
+        .schedule-item {
+          font-size: 8px;
+          padding: 1px 2px;
+        }
+
+        .more-schedules {
+          font-size: 8px;
+          padding: 1px 2px;
+        }
+      }
+    }
+  }
+}
+
+.calendar-legend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  padding: 16px;
+  background-color: $gray-light;
+  border-radius: 6px;
+  font-size: 12px;
+  color: $text-gray;
+  flex-wrap: wrap;
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+
+      &.today {
+        background-color: rgba(184, 165, 214, 0.3);
+        border: 2px solid $primary-color;
+      }
+
+      &.weekend {
+        background-color: $weekend-bg;
+        border: 1px solid $gray-border;
+      }
+    }
+
+    .info-text {
+      color: $text-gray;
+      font-size: 11px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    gap: 12px;
+    padding: 12px;
+
+    .legend-item {
+      .legend-color {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .medication-calendar-container {
+    padding: 16px;
+  }
+
+  .calendar-header {
+    .month-year {
+      font-size: 16px;
+
+      .today-btn {
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+    }
+
+    .nav-btn {
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+    }
+  }
+
+  .weekdays {
+    .weekday {
+      font-size: 10px;
+    }
+  }
+}
+
+/* Schedule Details Modal */
+.schedule-details-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.schedule-details-panel {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+
+  .details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 16px 24px;
+    border-bottom: 2px solid $gray-border;
+    position: sticky;
+    top: 0;
+    background-color: white;
+
+    h3 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: $text-dark;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: $text-gray;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: $text-dark;
+      }
+    }
+  }
+
+  .details-content {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      .label {
+        font-size: 12px;
+        font-weight: 700;
+        color: $text-gray;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .value {
+        font-size: 14px;
+        color: $text-dark;
+        font-weight: 500;
+      }
+
+      &.date-range {
+        .date-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          span {
+            font-size: 13px;
+            color: $text-dark;
+
+            &.indefinite {
+              color: $primary-color;
+              font-weight: 600;
+            }
+          }
+        }
+      }
+    }
+
+    .day-schedules-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .day-schedule-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 12px;
+        background-color: $gray-light;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-left: 4px solid $primary-color;
+
+        &:hover {
+          background-color: rgba(184, 165, 214, 0.15);
+          transform: translateX(4px);
+        }
+
+        &:active {
+          transform: translateX(2px);
+        }
+
+        .schedule-time {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          .time-badge {
+            background: linear-gradient(135deg, $primary-color, $primary-dark);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            min-width: 55px;
+            text-align: center;
+          }
+        }
+
+        .schedule-details {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: $text-dark;
+          }
+
+          p {
+            margin: 0;
+            font-size: 12px;
+            color: $text-gray;
+            line-height: 1.4;
+
+            &.dose {
+              font-weight: 600;
+              color: $primary-color;
+            }
+
+            &.presentation {
+              font-size: 11px;
+              color: #999;
+            }
+          }
+        }
+
+        .arrow {
+          color: $text-gray;
+          font-size: 20px;
+          transition: color 0.2s ease;
+        }
+
+        &:hover .arrow {
+          color: $primary-color;
+        }
+      }
+    }
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 600px) {
+  .schedule-details-overlay {
+    padding: 0;
+
+    .schedule-details-panel {
+      border-radius: 12px 12px 0 0;
+      max-width: 100%;
+      max-height: 90vh;
+    }
+  }
+}

@@ -1,0 +1,49 @@
+<div class="acceptance-container">
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando invitación...</p>
+  </div>
+
+  <!-- Error específico (persona no invitada o invitación expirada/inválida) -->
+  <div *ngIf="error && !loading && currentUser" class="error-message">
+    <p>{{ error }}</p>
+    <button (click)="goToLogin()">Cambiar Cuenta</button>
+  </div>
+
+  <!-- Estado: sin usuario logueado pero con token válido -->
+  <div *ngIf="!loading && !error && !currentUser && token" class="login-prompt">
+    <div class="login-card">
+      <h2>Invitación Pendiente</h2>
+      <p class="description">Has recibido una invitación para colaborar en el cuidado.</p>
+      <p class="hint">Inicia sesión con tu cuenta de correo para aceptarla.</p>
+      <button class="login-btn" (click)="goToLogin()">Iniciar Sesión</button>
+    </div>
+  </div>
+
+  <!-- Invitación cargada y usuario es la persona invitada -->
+  <div *ngIf="invitation && !loading && !error && currentUser" class="invitation-card">
+    <h2>Invitación Recibida</h2>
+
+    <div class="invitation-details">
+      <p class="message">Te han invitado para cuidar a:</p>
+      <p class="dependent-name">{{ dependentName || 'Dependiente' }}</p>
+    </div>
+
+    <div class="user-info">
+      <p class="connected">Conectado como:</p>
+      <p class="email">{{ currentUser.email }}</p>
+
+      <div class="actions">
+        <button
+          class="accept-btn"
+          (click)="acceptInvitation()"
+          [disabled]="accepting">
+          {{ accepting ? 'Aceptando...' : 'Aceptar Invitación' }}
+        </button>
+        <button class="logout-btn" (click)="logout()">
+          Cambiar Cuenta
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

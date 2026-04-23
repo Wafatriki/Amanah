@@ -1,0 +1,38 @@
+<div class="documents-container">
+  <!-- Header -->
+  <div class="documents-header">
+    <h1 class="documents-title">Documentos Clínicos</h1>
+    @if (canUploadDocument()) {
+      <button class="btn-create" (click)="toggleUploadForm()" [class.active]="showUploadForm">
+        <img src="/assets/icons/mas.png" alt="Nuevo" class="btn-icon">
+        {{ showUploadForm ? 'Cerrar' : 'Nuevo Documento' }}
+      </button>
+    }
+  </div>
+
+  <!-- No dependent selected -->
+  @if (!activeDependentId) {
+    <div class="empty-state">
+      <p>Selecciona un dependiente para gestionar sus documentos</p>
+    </div>
+  } @else {
+    <!-- Upload form collapsible -->
+    @if (showUploadForm) {
+      <div class="upload-section">
+        <div class="section-title">Subir Nuevo Documento</div>
+        <app-document-upload
+          [dependentId]="activeDependentId"
+          (documentUploaded)="onDocumentUploaded()"
+          (uploadCancelled)="onUploadCancelled()"
+        ></app-document-upload>
+      </div>
+    }
+
+    <!-- Document list -->
+    <div class="list-section">
+      <app-document-list
+        [dependentId]="activeDependentId"
+      ></app-document-list>
+    </div>
+  }
+</div>

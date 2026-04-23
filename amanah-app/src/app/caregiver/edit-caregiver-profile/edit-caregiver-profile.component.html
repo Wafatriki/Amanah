@@ -1,0 +1,132 @@
+<div class="edit-profile-container">
+  @if (loading) {
+    <div class="loading">
+      <p>Cargando...</p>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <!-- Error Message -->
+      @if (error) {
+        <div class="error-message">
+          <span class="error-icon">!</span>
+          {{ error }}
+        </div>
+      }
+
+      <!-- Header Section -->
+      <div class="form-header-section">
+        <h2 class="form-title">Editar Perfil</h2>
+      </div>
+
+      <!-- Información Básica Section -->
+      <div class="form-section">
+        <h3 class="section-title">Información básica</h3>
+
+        <div class="section-content">
+          <!-- Image Upload -->
+          <div class="form-group image-upload">
+            <label for="profile-image">Foto de perfil</label>
+            <div class="image-upload-wrapper">
+              <div class="image-preview-container">
+                @if (imagePreview) {
+                  <div class="image-preview">
+                    <img [src]="imagePreview" alt="Preview" class="image">
+                  </div>
+                } @else {
+                  <div class="image-placeholder">
+                    <img src="/assets/icons/usuario.png" alt="Photo placeholder" class="placeholder-icon">
+                  </div>
+                }
+              </div>
+              @if (isUploadingImage) {
+                <div class="upload-progress">
+                  <p>Subiendo imagen...</p>
+                  <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                  </div>
+                </div>
+              } @else {
+                <button type="button"
+                        class="upload-btn"
+                        (click)="fileInput.click()">
+                  Seleccionar foto
+                </button>
+              }
+              <input type="file"
+                     #fileInput
+                     accept="image/jpeg,image/png"
+                     (change)="onFileSelected($event)"
+                     [disabled]="isUploadingImage"
+                     style="display: none;">
+            </div>
+          </div>
+
+          <!-- Name Field -->
+          <div class="form-group">
+            <label for="name">Nombre *</label>
+            <input type="text"
+                   id="name"
+                   formControlName="name"
+                   class="form-input"
+                   placeholder="Nombre completo"
+                   [class.error]="form.get('name')?.invalid && form.get('name')?.touched">
+            @if (form.get('name')?.invalid && form.get('name')?.touched) {
+              <span class="error-text">
+                {{ getNameError() }}
+              </span>
+            }
+          </div>
+
+          <!-- Email Field -->
+          <div class="form-group">
+            <label for="email">Email *</label>
+            <input type="email"
+                   id="email"
+                   formControlName="email"
+                   class="form-input"
+                   placeholder="correo@ejemplo.com"
+                   [class.error]="form.get('email')?.invalid && form.get('email')?.touched">
+            <small class="info-text">El email no puede ser modificado</small>
+            @if (form.get('email')?.invalid && form.get('email')?.touched) {
+              <span class="error-text">
+                {{ getEmailError() }}
+              </span>
+            }
+          </div>
+
+          <!-- Phone Field -->
+          <div class="form-group">
+            <label for="phone">Teléfono</label>
+            <input type="tel"
+                   id="phone"
+                   formControlName="phone"
+                   class="form-input"
+                   placeholder="123456789"
+                   [class.error]="form.get('phone')?.invalid && form.get('phone')?.touched">
+            @if (form.get('phone')?.invalid && form.get('phone')?.touched) {
+              <span class="error-text">
+                {{ getPhoneError() }}
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="loading || isUploadingImage">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid || loading || isUploadingImage">
+          @if (loading) {
+            Guardando...
+          } @else if (isUploadingImage) {
+            Subiendo imagen...
+          } @else {
+            Guardar cambios
+          }
+        </button>
+      </div>
+    </form>
+  }
+</div>

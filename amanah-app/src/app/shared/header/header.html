@@ -1,0 +1,14 @@
+<header class="mobile-header">
+  <div class="mobile-logo">
+    <img src="assets/logos/amanah-logo.svg" alt="Amanah" class="logo-image" />
+  </div>
+  <button class="menu-button" (click)="toggleSidebar()">☰</button>
+</header>
+
+<!-- Page header with title and subtitle (shown below mobile header) -->
+<div class="page-header-section" *ngIf="title">
+  <div class="header-content">
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-subtitle" *ngIf="subtitle">{{ subtitle }}</p>
+  </div>
+</div>

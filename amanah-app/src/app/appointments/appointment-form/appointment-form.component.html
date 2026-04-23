@@ -1,0 +1,225 @@
+<div class="appointment-form-container">
+  <!-- Header -->
+  <div class="form-header">
+    <div class="header-content">
+      <h1 class="form-title">{{ editMode ? 'Editar' : 'Nueva' }} Cita Médica</h1>
+      <p class="form-subtitle">{{ editMode ? 'Actualiza los detalles de la cita' : 'Registra una nueva cita médica para el dependiente' }}</p>
+    </div>
+    <button class="btn-close" (click)="goBack()" title="Cerrar">×</button>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading-spinner">
+    <p>Cargando cita...</p>
+  </div>
+
+  <!-- Form -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!loading" class="form">
+
+    <!-- Basic Information Section -->
+    <section class="form-section">
+      <h2>Información de la Cita</h2>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="date">Fecha de la Cita *</label>
+          <input
+            id="date"
+            type="date"
+            formControlName="date"
+          />
+          <span class="error" *ngIf="form.get('date')?.errors && (form.get('date')?.touched || submitted)">Campo requerido</span>
+        </div>
+
+        <div class="form-group">
+          <label for="time">Hora *</label>
+          <input
+            id="time"
+            type="time"
+            formControlName="time"
+          />
+          <span class="error" *ngIf="form.get('time')?.errors && (form.get('time')?.touched || submitted)">Campo requerido</span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="specialty">Especialidad *</label>
+          <select id="specialty" formControlName="specialty">
+            <option value="">Seleccionar especialidad</option>
+            <option *ngFor="let specialty of specialties" [value]="specialty">
+              {{ specialty }}
+            </option>
+          </select>
+          <span class="error" *ngIf="form.get('specialty')?.errors && (form.get('specialty')?.touched || submitted)">Campo requerido</span>
+        </div>
+
+        <!-- Campo para especialidad personalizada cuando selecciona "Otro" -->
+        <div class="form-group" *ngIf="form.get('specialty')?.value === 'Otro'">
+          <label for="customSpecialty">Especifica la especialidad *</label>
+          <input
+            id="customSpecialty"
+            type="text"
+            [(ngModel)]="customSpecialty"
+            [ngModelOptions]="{standalone: true}"
+            placeholder="Ej: Psiquiatría, Nutrición, etc."
+            class="form-input"
+          />
+          <span class="error" *ngIf="form.get('specialty')?.value === 'Otro' && !customSpecialty && submitted">
+            Debes especificar la especialidad
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="location">Lugar *</label>
+          <input
+            id="location"
+            type="text"
+            formControlName="location"
+            placeholder="ej: Hospital San Juan, Clínica Privada"
+          />
+          <span class="error" *ngIf="form.get('location')?.errors && (form.get('location')?.touched || submitted)">Campo requerido</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="doctor">Médico</label>
+        <input
+          id="doctor"
+          type="text"
+          formControlName="doctor"
+          placeholder="Nombre del médico"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="reason">Motivo de la Cita</label>
+        <input
+          id="reason"
+          type="text"
+          formControlName="reason"
+          placeholder="ej: Chequeo general, Control presión"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Notas Previas</label>
+        <textarea
+          id="notes"
+          formControlName="notes"
+          placeholder="Notas o instrucciones para la cita"
+        ></textarea>
+      </div>
+
+      <!-- Reminder Configuration -->
+      <div [formGroupName]="'reminder'" class="reminder-section">
+        <div class="reminder-header">
+
+          <h4>Recordatorio de Cita</h4>
+          <span class="reminder-badge" *ngIf="form.get('reminder.enabled')?.value" [ngClass]="'enabled'">✓ Activo</span>
+        </div>
+
+        <div class="reminder-content">
+          <div class="reminder-toggle">
+            <label for="reminder-enabled" class="toggle-label">
+              <input
+                id="reminder-enabled"
+                type="checkbox"
+                formControlName="enabled"
+                class="toggle-input"
+              />
+              <span class="toggle-switch"></span>
+              <span class="toggle-text">Habilitar recordatorio de cita</span>
+            </label>
+          </div>
+
+          <div class="reminder-time-selector" *ngIf="form.get('reminder.enabled')?.value">
+            <p class="reminder-time-label">⏰ ¿Cuándo recibir el recordatorio?</p>
+            <select id="reminder-minutes" formControlName="minutesBefore" class="reminder-select">
+              <option [value]="5">5 minutos antes</option>
+              <option [value]="10">10 minutos antes</option>
+              <option [value]="15">15 minutos antes</option>
+              <option [value]="30">30 minutos antes</option>
+              <option [value]="60">1 hora antes</option>
+              <option [value]="120">2 horas antes</option>
+              <option [value]="1440">1 día antes</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="duration">Duración Estimada (minutos)</label>
+        <input
+          id="duration"
+          type="number"
+          formControlName="duration"
+          min="15"
+          step="15"
+          placeholder="ej: 30, 60"
+        />
+      </div>
+
+      <!-- Status (only in edit mode) -->
+      <div *ngIf="editMode" class="form-group">
+        <label for="status">Estado de la Cita</label>
+        <select id="status" formControlName="status">
+          <option *ngFor="let status of appointmentStatuses" [value]="status.value">
+            {{ status.label }}
+          </option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Caregivers Assignment Section -->
+    <section class="form-section">
+      <h2>Cuidadores Asignados *</h2>
+      <p class="section-subtitle">Selecciona uno o más cuidadores para esta cita</p>
+
+      <div *ngIf="caregivers.length === 0" class="no-caregivers">
+        <p>No hay cuidadores disponibles para este dependiente</p>
+      </div>
+
+      <div *ngIf="caregivers.length > 0" class="caregivers-list">
+        <div *ngFor="let caregiver of caregivers; trackBy: trackByCaregiverId" class="caregiver-checkbox">
+          <input
+            type="checkbox"
+            [id]="'caregiver-' + caregiver.userId"
+            [ngModel]="isCaregiverSelected(caregiver.userId)"
+            (ngModelChange)="toggleCaregiverSelection(caregiver.userId)"
+            [ngModelOptions]="{standalone: true}"
+          />
+          <label [for]="'caregiver-' + caregiver.userId">
+            <span class="caregiver-name">{{ caregiver.name || '(Sin nombre)' }}</span>
+            <span class="caregiver-role" *ngIf="caregiver.role">{{ caregiver.role === 'primary_caregiver' ? '(Cuidador Principal)' : '(Cuidador Colaborativo)' }}</span>
+          </label>
+        </div>
+      </div>
+
+      <span *ngIf="submitted && selectedCaregiverIds.length === 0" class="error">
+        Debes asignar al menos un cuidador
+      </span>
+    </section>
+
+    <!-- Form Actions -->
+    <section class="form-actions">
+      <button type="button" class="btn-cancel" (click)="goBack()" [disabled]="submitting">
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        class="btn-submit"
+        [disabled]="submitting || (submitted && form.invalid) || selectedCaregiverIds.length === 0 || (form.get('specialty')?.value === 'Otro' && !customSpecialty.trim())"
+      >
+        {{ submitting ? 'Guardando...' : editMode ? 'Actualizar Cita' : 'Crear Cita' }}
+      </button>
+    </section>
+  </form>
+
+
+</div>

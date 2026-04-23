@@ -1,0 +1,25 @@
+<nav class="sidebar" [class.open]="isSidebarOpen">
+  <div class="logo">
+    <img src="/assets/logos/amanah-lila-lila.svg" alt="Amanah" class="logo-image" />
+  </div>
+
+  <div class="separator"></div>
+
+  <div class="nav-menu">
+    @for (item of filteredNavItems; track item.path) {
+      <button
+        type="button"
+        class="nav-item"
+        [class.active]="activeItem === item.path || (item.special && activeItem.startsWith('/dependent-detail'))"
+        (click)="navigate(item)"
+        [attr.aria-label]="item.label"
+      >
+        <span class="nav-label">{{ item.label }}</span>
+      </button>
+    }
+  </div>
+</nav>
+
+@if (isSidebarOpen) {
+  <button type="button" class="sidebar-overlay" (click)="sidebarService.closeSidebar()" aria-label="Cerrar menú"></button>
+}

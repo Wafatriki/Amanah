@@ -1,0 +1,570 @@
+$primary-color: #B8A5D6;
+$primary-dark: #a491c7;
+$gray-light: #f9f9f9;
+$gray-border: #f0f0f0;
+$text-dark: #333333;
+$text-gray: #666666;
+$error-color: #e74c3c;
+$success-color: #27ae60;
+
+.medication-form-container {
+  width: 100%;
+  min-height: 100vh;
+  background: #ffffff;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  gap: 20px;
+  border-bottom: 2px solid $gray-border;
+  padding-bottom: 24px;
+  position: sticky;
+  top: 0;
+  background-color: #ffffff;
+  z-index: 10;
+
+  .header-content {
+    flex: 1;
+  }
+
+  .btn-close {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: $gray-light;
+    border: none;
+    border-radius: 6px;
+    font-size: 18px;
+    color: $text-gray;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+
+    &:hover {
+      background-color: #e0e0e0;
+      color: $text-dark;
+    }
+  }
+}
+
+.form-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
+
+.form-subtitle {
+  font-size: 14px;
+  color: $text-gray;
+  margin: 0;
+  font-weight: 400;
+}
+
+.form-wrapper {
+  display: none;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid $gray-border;
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: $text-dark;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-dark;
+    letter-spacing: 0.3px;
+  }
+
+  input[type="text"],
+  input[type="date"],
+  input[type="time"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    padding: 12px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    background-color: #ffffff;
+    color: $text-dark;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba(184, 165, 214, 0.1);
+    }
+
+    &:disabled {
+      background-color: #f5f5f5;
+      color: #999999;
+      cursor: not-allowed;
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+
+  select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23666666' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  .error {
+    font-size: 12px;
+    color: #f44336;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: #666666;
+    font-style: italic;
+    margin-top: 4px;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group {
+    margin-bottom: 0;
+  }
+}
+
+.alert {
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideDown 0.3s ease;
+
+  &.alert-error {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.1) 0%, rgba(231, 76, 60, 0.05) 100%);
+    color: #c0392b;
+    border-left: 4px solid #e74c3c;
+    font-weight: 500;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+  color: #666666;
+  font-size: 16px;
+  min-height: 200px;
+
+  p {
+    margin: 0;
+  }
+}
+
+.schedules-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  h2 {
+    margin: 0;
+    flex: 1;
+  }
+}
+
+.schedules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.schedule-form {
+  padding: 20px;
+  background: #fafbfd;
+  border: 1px solid #e8e6f0;
+  border-radius: 10px;
+  border-left: 3px solid #B8A5D6;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #d9d1e8;
+    box-shadow: 0 2px 8px rgba(184, 165, 214, 0.06);
+  }
+
+  h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #B8A5D6;
+    margin: 0 0 16px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: none;
+    padding: 0;
+    border: none;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 150px 1fr 40px;
+    gap: 12px;
+    align-items: flex-end;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+
+    .form-group {
+      margin-bottom: 0;
+
+      @media (max-width: 600px) {
+        margin-bottom: 12px;
+      }
+    }
+  }
+
+  .delete-schedule-btn {
+    padding: 10px;
+    background: #fff5f5;
+    color: #e74c3c;
+    border: 1px solid #f0d1d1;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+
+    &:hover {
+      background: #ffe8e8;
+      border-color: #e74c3c;
+      color: #d63031;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.add-schedule-btn {
+  padding: 11px 20px;
+  background: linear-gradient(135deg, #B8A5D6 0%, #a395cc 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(184, 165, 214, 0.25);
+
+  &:hover {
+    background: linear-gradient(135deg, #a395cc 0%, #9289bf 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(184, 165, 214, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* Form actions are styled globally in styles.scss */
+
+/* Responsive */
+@media (max-width: 768px) {
+  .medication-form-container {
+    padding: 16px;
+  }
+
+  .form-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 24px;
+
+    .form-title {
+      font-size: 24px;
+    }
+
+    .btn-close {
+      align-self: flex-end;
+      margin-top: -40px;
+    }
+  }
+
+  .form {
+    .form-section {
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+
+      h2 {
+        margin-bottom: 16px;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+  }
+
+  .schedules-header {
+    flex-direction: column;
+    align-items: stretch;
+
+    .add-schedule-btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  .form-actions {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+}
+
+// ============================================
+// Reminder Section Styles
+// ============================================
+
+.reminder-section {
+  background: linear-gradient(135deg, #f8f6fc 0%, #faf8fc 100%);
+  border: 2px solid #E8D5F2;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 12px;
+
+  .reminder-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #E8D5F2;
+
+    .reminder-icon {
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+    }
+
+    h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      flex: 1;
+    }
+
+    .reminder-badge {
+      background: #e8f5e9;
+      color: #2e7d32;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+
+      &.enabled {
+        background: #c8e6c9;
+        color: #1b5e20;
+      }
+    }
+  }
+
+  .reminder-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .reminder-toggle {
+    display: flex;
+    align-items: center;
+
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      flex: 1;
+
+      .toggle-input {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 0;
+        height: 0;
+        margin: 0;
+        padding: 0;
+        position: absolute;
+        opacity: 0;
+
+        &:checked + .toggle-switch {
+          background: #B8A5D6;
+          border-color: #9389bd;
+
+          &::after {
+            transform: translateX(18px);
+          }
+        }
+      }
+
+      .toggle-switch {
+        width: 44px;
+        height: 24px;
+        background: #d0d0d0;
+        border: 1px solid #c0c0c0;
+        border-radius: 12px;
+        position: relative;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+
+        &::after {
+          content: '';
+          position: absolute;
+          width: 20px;
+          height: 20px;
+          background: white;
+          border-radius: 10px;
+          top: 1px;
+          left: 1px;
+          transition: transform 0.3s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+      }
+
+      .toggle-text {
+        font-size: 14px;
+        color: #333;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .reminder-time-selector {
+    background: white;
+    border: 1px solid #E8D5F2;
+    border-radius: 8px;
+    padding: 12px;
+    animation: slideDown 0.3s ease;
+
+    .reminder-time-label {
+      margin: 0 0 10px 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #B8A5D6;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .reminder-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #E8D5F2;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #333;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: #B8A5D6;
+        background: #faf8fc;
+      }
+
+      &:focus {
+        outline: none;
+        border-color: #B8A5D6;
+        box-shadow: 0 0 0 3px rgba(184, 165, 214, 0.1);
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

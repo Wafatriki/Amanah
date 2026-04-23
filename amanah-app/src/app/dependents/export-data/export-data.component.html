@@ -1,0 +1,105 @@
+<div class="modal-overlay" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Exportar Información</h2>
+      <button class="close-btn" (click)="onClose()" [disabled]="isExporting">
+        ✕
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="info-text">Selecciona el formato en el que deseas exportar los datos de <strong>{{ dependent.name }}</strong>:</p>
+
+      <!-- Success Message -->
+      <div *ngIf="successMessage" class="alert alert-success">
+        {{ successMessage }}
+      </div>
+
+      <!-- Format Selection -->
+      <div class="format-selector">
+        <div class="format-option">
+          <input
+            type="radio"
+            id="format-json"
+            name="format"
+            value="json"
+            [(ngModel)]="exportFormat"
+            [disabled]="isExporting"
+          />
+          <label for="format-json" class="format-label">
+            <div class="format-icon">📄</div>
+            <div class="format-info">
+              <h3>JSON</h3>
+              <p>Formato estructurado, ideal para integración con sistemas</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="format-option">
+          <input
+            type="radio"
+            id="format-csv"
+            name="format"
+            value="csv"
+            [(ngModel)]="exportFormat"
+            [disabled]="isExporting"
+          />
+          <label for="format-csv" class="format-label">
+            <div class="format-icon">📊</div>
+            <div class="format-info">
+              <h3>CSV</h3>
+              <p>Formato de hoja de cálculo, compatible con Excel</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="format-option">
+          <input
+            type="radio"
+            id="format-txt"
+            name="format"
+            value="txt"
+            [(ngModel)]="exportFormat"
+            [disabled]="isExporting"
+          />
+          <label for="format-txt" class="format-label">
+            <div class="format-icon">📝</div>
+            <div class="format-info">
+              <h3>Texto Plano</h3>
+              <p>Formato legible fácilmente compartible</p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Data Summary -->
+      <div class="data-summary">
+        <h3>Datos a exportar:</h3>
+        <ul>
+          <li>✓ Información personal de {{ dependent.name }}</li>
+          <li *ngIf="medications.length > 0">✓ {{ medications.length }} medicación(es)</li>
+          <li *ngIf="tasks.length > 0">✓ {{ tasks.length }} tarea(s)</li>
+          <li *ngIf="medications.length === 0 && tasks.length === 0">ℹ️ Solo información del dependiente</li>
+        </ul>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="form-actions">
+        <button
+          class="btn-cancel"
+          (click)="onClose()"
+          [disabled]="isExporting"
+        >
+          Cancelar
+        </button>
+        <button
+          class="btn-export"
+          (click)="onExport()"
+          [disabled]="isExporting"
+        >
+          {{ isExporting ? 'Exportando...' : 'Descargar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

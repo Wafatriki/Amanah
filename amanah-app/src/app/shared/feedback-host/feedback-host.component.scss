@@ -1,0 +1,49 @@
+.feedback-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 16px;
+}
+
+.feedback-modal {
+  width: min(92vw, 460px);
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+  padding: 24px;
+}
+
+.feedback-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: #333333;
+}
+
+.feedback-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #666666;
+}
+
+.feedback-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+@media (max-width: 600px) {
+  .feedback-actions {
+    flex-direction: column-reverse;
+  }
+
+  .feedback-modal {
+    width: 100%;
+  }
+}

@@ -1,0 +1,255 @@
+<div class="appointments-container">
+  <!-- Header -->
+  <div class="appointments-header">
+    <div class="header-content">
+      <h1 class="page-title">Citas Médicas</h1>
+      <p class="page-subtitle">Gestiona todas las citas médicas del dependiente</p>
+    </div>
+    <button class="btn-primary" (click)="createAppointment()" *ngIf="!permissionService.isReadOnly()">
+      <img src="/assets/icons/mas.png" alt="Nueva" class="btn-icon">
+      Nueva Cita
+    </button>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="alert alert-error">
+    {{ error }}
+    <button (click)="error = null">×</button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="currentLoading" class="loading-spinner">
+    <p>Cargando citas...</p>
+  </div>
+
+  <!-- Tabs -->
+  <div *ngIf="!currentLoading" class="appointments-tabs">
+    <button
+      class="tab-btn"
+      [class.active]="selectedTab === 'upcoming'"
+      (click)="selectedTab = 'upcoming'"
+    >
+      Próximas Citas ({{ upcomingAppointments.length }})
+    </button>
+    <button
+      class="tab-btn"
+      [class.active]="selectedTab === 'history'"
+      (click)="selectedTab = 'history'"
+    >
+      Historial ({{ pastAppointments.length }})
+    </button>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!currentLoading && currentAppointments.length === 0" class="empty-state">
+    <div class="empty-icon">Sin citas</div>
+    <p class="empty-title">No hay citas</p>
+    <p class="empty-subtitle">
+      {{ selectedTab === 'upcoming'
+        ? 'No hay citas programadas en el futuro'
+        : 'No hay citas pasadas en el historial'
+      }}
+    </p>
+    <button *ngIf="selectedTab === 'upcoming'" class="btn-primary" (click)="createAppointment()" [hidden]="permissionService.isReadOnly()">
+      <img src="/assets/icons/mas.png" alt="Nueva" class="btn-icon">
+      Nueva Cita
+    </button>
+  </div>
+
+  <!-- Appointments List -->
+  <div *ngIf="!currentLoading && currentAppointments.length > 0" class="appointments-list">
+    <div
+      *ngFor="let appointment of currentAppointments; trackBy: trackByAppointmentId"
+      class="appointment-card"
+      [class.overdue]="appointment.status === 'overdue'"
+      [class.completed]="appointment.status === 'completed'"
+      [class.cancelled]="appointment.status === 'cancelled'"
+    >
+      <!-- Appointment Header -->
+      <div class="appointment-header" (click)="showDetails(appointment)" role="button" tabindex="0">
+        <div class="appointment-info">
+          <div class="appointment-date-time">
+            <span class="date">{{ appointment.date | date: 'dd/MM/yyyy' }}</span>
+            <span class="time">{{ appointment.time }}</span>
+          </div>
+          <div class="appointment-details">
+            <h4>{{ appointment.specialty }}</h4>
+            <p class="doctor" *ngIf="appointment.doctor">
+              {{ appointment.doctor }}
+            </p>
+            <p class="location">{{ appointment.location }}</p>
+            <p class="caregivers" *ngIf="appointment.assignedCaregiverNames && appointment.assignedCaregiverNames.length > 0">
+              {{ appointment.assignedCaregiverNames.join(', ') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="appointment-status">
+          <span class="status-badge" [class]="getStatusBadgeClass(appointment.status)">
+            {{ getStatusLabel(appointment.status) }}
+          </span>
+          <span class="notes-count" *ngIf="appointment.postAppointmentNotes.length > 0">
+            ({{ appointment.postAppointmentNotes.length }})
+          </span>
+        </div>
+      </div>
+
+      <!-- Appointment Actions -->
+      <div class="appointment-actions">
+        <button *ngIf="appointment.status === 'scheduled' && !permissionService.isReadOnly()" class="btn-complete" (click)="completeAppointment(appointment.id!)" title="Marcar como completada">
+          <img src="/assets/icons/completar.png" alt="Completar" class="action-icon">
+        </button>
+        <button *ngIf="appointment.status === 'scheduled' && !permissionService.isReadOnly()" class="btn-edit" (click)="editAppointment(appointment.id!)" title="Editar cita">
+          <img src="/assets/icons/lapiz.png" alt="Editar" class="action-icon">
+        </button>
+        <button *ngIf="appointment.status === 'scheduled' && !permissionService.isReadOnly()" class="btn-cancel" (click)="cancelAppointment(appointment.id!)" title="Cancelar cita">
+          <img src="/assets/icons/cancelar.png" alt="Cancelar" class="action-icon">
+        </button>
+        <button *ngIf="appointment.status !== 'scheduled' && !permissionService.isReadOnly()" class="btn-delete" (click)="deleteAppointment(appointment.id!)" title="Eliminar permanentemente">
+          <img src="/assets/icons/basura.png" alt="Eliminar" class="action-icon">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div *ngIf="showDetailModal && selectedAppointment" class="modal-overlay" (click)="closeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h3>Detalles de la Cita</h3>
+        <button class="close-btn" (click)="closeModal()" title="Cerrar">×</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Status Badge -->
+        <div class="status-badge-section">
+          <span class="status-badge" [ngClass]="'status-' + selectedAppointment.status">
+            {{ selectedAppointment.status === 'scheduled' ? 'Programada' : selectedAppointment.status === 'completed' ? 'Completada' : selectedAppointment.status === 'overdue' ? 'Vencida' : 'Cancelada' }}
+          </span>
+        </div>
+
+        <!-- Appointment Details -->
+        <div class="detail-section">
+          <div class="detail-row">
+            <span class="label">Fecha:</span>
+            <span class="value">{{ selectedAppointment.date | date: 'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Hora:</span>
+            <span class="value">{{ selectedAppointment.time }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Especialidad:</span>
+            <span class="value">{{ selectedAppointment.specialty }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Lugar:</span>
+            <span class="value">{{ selectedAppointment.location }}</span>
+          </div>
+          <div *ngIf="selectedAppointment.doctor" class="detail-row">
+            <span class="label">Médico:</span>
+            <span class="value">{{ selectedAppointment.doctor }}</span>
+          </div>
+          <div *ngIf="selectedAppointment.reason" class="detail-row">
+            <span class="label">Motivo:</span>
+            <span class="value">{{ selectedAppointment.reason }}</span>
+          </div>
+          <div *ngIf="selectedAppointment.duration" class="detail-row">
+            <span class="label">Duración:</span>
+            <span class="value">{{ selectedAppointment.duration }} min</span>
+          </div>
+          <div *ngIf="selectedAppointment.notes" class="detail-row">
+            <span class="label">Notas Previas:</span>
+            <span class="value">{{ selectedAppointment.notes }}</span>
+          </div>
+          <div *ngIf="selectedAppointment.assignedCaregiverNames && selectedAppointment.assignedCaregiverNames.length > 0" class="detail-row">
+            <span class="label">Cuidadores Asignados:</span>
+            <span class="value">{{ selectedAppointment.assignedCaregiverNames.join(', ') }}</span>
+          </div>
+        </div>
+
+        <!-- Status Selector (only for non-scheduled) -->
+        <div class="status-section" *ngIf="selectedAppointment.status !== 'scheduled'">
+          <label>Estado de la Cita:</label>
+          <select
+            [value]="selectedAppointment.status"
+            (change)="updateStatus(selectedAppointment.id || '', $event)"
+            class="status-select"
+          >
+            <option value="completed">Completada</option>
+            <option value="cancelled">Cancelada</option>
+          </select>
+        </div>
+
+        <!-- Post-Appointment Notes -->
+        <div class="notes-section" *ngIf="selectedAppointment.postAppointmentNotes.length > 0">
+          <h4>Notas Post-Cita</h4>
+          <div class="notes-list">
+            <div
+              *ngFor="let note of selectedAppointment.postAppointmentNotes; let i = index"
+              class="note-item"
+            >
+              <div class="note-meta">
+                <strong>{{ note.userName }}</strong>
+                <span class="date">{{ note.date | date: 'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+              <p>{{ note.text }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add Note Form -->
+        <div class="add-note-section">
+          <button
+            *ngIf="!showNoteForm"
+            class="btn-add-note"
+            (click)="toggleNoteForm()"
+          >
+            + Agregar Nota
+          </button>
+
+          <form *ngIf="showNoteForm" class="note-form" (ngSubmit)="addPostAppointmentNote()">
+            <textarea
+              [(ngModel)]="noteText"
+              name="noteText"
+              placeholder="Escribe notas sobre la cita..."
+              rows="4"
+              class="note-input"
+            ></textarea>
+            <div class="note-actions">
+              <button
+                type="button"
+                class="btn-cancel"
+                (click)="toggleNoteForm()"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                class="btn-submit"
+                [disabled]="!noteText.trim()"
+              >
+                Guardar Nota
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button *ngIf="selectedAppointment.status === 'scheduled'" class="btn-cancel-appt" (click)="cancelAppointment(selectedAppointment.id!)">
+          Cancelar Cita
+        </button>
+        <button *ngIf="selectedAppointment.status !== 'scheduled'" class="btn-delete-appt" (click)="deleteAppointment(selectedAppointment.id!)">
+          Eliminar Permanentemente
+        </button>
+        <button class="btn-close-modal" (click)="closeModal()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

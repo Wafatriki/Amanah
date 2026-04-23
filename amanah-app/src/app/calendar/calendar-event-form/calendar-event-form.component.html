@@ -1,0 +1,194 @@
+<div class="event-form-container">
+  <div class="form-header">
+    <h1>{{ isEditMode ? 'Editar Evento' : 'Nuevo Evento' }}</h1>
+    <button class="btn-close" (click)="onCancel()" type="button">×</button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="event-form">
+    <!-- Información Básica -->
+    <div class="form-section">
+      <h2>Información Básica</h2>
+
+      <div class="form-group">
+        <label for="title">Título *</label>
+        <input
+          id="title"
+          type="text"
+          formControlName="title"
+          placeholder="Ej: Consulta con Dr. López"
+          class="form-input"
+          [class.error]="form.get('title')?.invalid && form.get('title')?.touched"
+        />
+        <p class="error-text" *ngIf="titleError">{{ titleError }}</p>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Descripción</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          placeholder="Detalles adicionales..."
+          class="form-textarea"
+          rows="3"
+        ></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="type">Tipo de Evento *</label>
+          <select id="type" formControlName="type" class="form-select">
+            <option *ngFor="let type of eventTypes" [value]="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notas</label>
+          <input
+            id="notes"
+            type="text"
+            formControlName="notes"
+            placeholder="Notas internas..."
+            class="form-input"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Fecha y Hora -->
+    <div class="form-section">
+      <h2>Fecha y Hora</h2>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="startDate">Fecha Inicio *</label>
+          <input
+            id="startDate"
+            type="date"
+            formControlName="startDate"
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="startTime">Hora Inicio</label>
+          <input
+            id="startTime"
+            type="time"
+            formControlName="startTime"
+            class="form-input"
+          />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="endDate">Fecha Fin *</label>
+          <input
+            id="endDate"
+            type="date"
+            formControlName="endDate"
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="endTime">Hora Fin</label>
+          <input
+            id="endTime"
+            type="time"
+            formControlName="endTime"
+            class="form-input"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Recurrencia -->
+    <div class="form-section">
+      <h2>Recurrencia</h2>
+
+      <div class="form-group" formGroupName="recurrence">
+        <label for="frequency">¿Se repite? *</label>
+        <select id="frequency" formControlName="frequency" class="form-select">
+          <option *ngFor="let rec of recurrenceTypes" [value]="rec.value">
+            {{ rec.label }}
+          </option>
+        </select>
+      </div>
+
+      @if (showRecurrenceOptions) {
+        <div class="form-group" formGroupName="recurrence">
+          <label for="endsAfterDays">Finaliza después de (días)</label>
+          <input
+            id="endsAfterDays"
+            type="number"
+            formControlName="endsAfterDays"
+            min="1"
+            max="365"
+            class="form-input"
+          />
+          <p class="help-text">Déjalo en blanco para que se repita indefinidamente</p>
+        </div>
+      }
+    </div>
+
+    <!-- Recordatorio Configuration -->
+    <div [formGroupName]="'reminder'" class="reminder-section">
+      <div class="reminder-header">
+        <h4>Recordatorio de Evento</h4>
+        @if (form.get('reminder.enabled')?.value) {
+          <span class="reminder-badge">✓ Activo</span>
+        }
+      </div>
+
+      <div class="reminder-toggle">
+        <label class="toggle-label">
+          <input type="checkbox" class="toggle-input" formControlName="enabled" />
+          <span class="toggle-switch"></span>
+          <span class="toggle-text">Habilitar recordatorio de evento</span>
+        </label>
+      </div>
+
+      @if (form.get('reminder.enabled')?.value) {
+        <div class="reminder-time-selector">
+          <label for="minutesBefore" class="reminder-time-label">⏰ Notificar antes de:</label>
+          <select id="minutesBefore" formControlName="minutesBefore" class="reminder-select">
+            <option *ngFor="let reminder of reminderOptions" [value]="reminder.value">
+              {{ reminder.label }}
+            </option>
+          </select>
+        </div>
+      }
+    </div>
+
+    <!-- Acciones -->
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="submitting">
+        Cancelar
+      </button>
+
+      @if (isEditMode) {
+        <button
+          type="button"
+          class="btn btn-danger"
+          (click)="onDelete()"
+          [disabled]="submitting"
+        >
+          Eliminar
+        </button>
+      }
+
+      <button type="submit" class="btn btn-primary" [disabled]="form.invalid || submitting">
+        {{ submitting ? 'Guardando...' : isEditMode ? 'Actualizar' : 'Crear Evento' }}
+      </button>
+    </div>
+  </form>
+
+  @if (loading) {
+    <div class="loading-overlay">
+      <p>Cargando evento...</p>
+    </div>
+  }
+</div>

@@ -1,0 +1,156 @@
+<div class="dependent-detail-container">
+  <!-- Header -->
+  <div class="dependent-detail-header">
+    <div class="header-content">
+      @if (dependent) {
+        <h1 class="page-title">{{ dependent.name }}</h1>
+        <p class="page-subtitle">Perfil del dependiente</p>
+      }
+    </div>
+  </div>
+
+  @if (loading) {
+    <div class="loading">
+      <p>Cargando...</p>
+    </div>
+  } @else if (dependent) {
+    <!-- Profile Section -->
+    <div class="profile-section">
+      <!-- Avatar -->
+      <div class="avatar-container">
+        @if (dependent.image) {
+          <img [src]="dependent.image" alt="{{ dependent.name }}" class="avatar">
+        } @else {
+          <div class="avatar-placeholder">
+            {{ dependent.name.charAt(0).toUpperCase() }}
+          </div>
+        }
+      </div>
+
+      <!-- Name -->
+      <h1 class="dependent-name">{{ dependent.name }}</h1>
+      <p class="age-subtitle">{{ dependent.age }} años</p>
+    </div>
+
+    <!-- Información básica -->
+    <div class="info-section">
+      <h2 class="section-title">Información básica</h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="label">Nombre</span>
+          <span class="value">{{ dependent.name }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Edad</span>
+          <span class="value">{{ dependent.age }} años</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Fecha creación</span>
+          <span class="value">{{ dependent.createdAt | date: 'dd/MM/yyyy' }}</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Notas médicas -->
+    @if (dependent.medicalConditions && dependent.medicalConditions.length > 0) {
+      <div class="medical-section">
+        <h2 class="section-title">Notas médicas</h2>
+        <div class="medical-content">
+          @for (condition of dependent.medicalConditions; track condition) {
+            <p class="condition-item">• {{ condition }}</p>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Medicaciones -->
+    @if (medications && medications.length > 0) {
+      <div class="medications-section">
+        <h2 class="section-title">Medicaciones</h2>
+        <div class="medication-content">
+          @for (medication of medications; track medication.id) {
+            <div class="medication-list-item">
+              <p class="medication-name-text"><strong>{{ medication.name }}</strong> - {{ medication.dose }}</p>
+              <p class="medication-info-text">Presentación: {{ medication.presentation }}</p>
+              @if (medication.schedules && medication.schedules.length > 0) {
+                <p class="medication-schedules-text">Horarios:
+                  @for (schedule of medication.schedules; track $index) {
+                    <span class="time-badge">{{ schedule.time }}</span>
+                  }
+                </p>
+              } @else {
+                <p class="medication-schedules-text">Horarios: Sin horarios programados</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Cuidadores -->
+    <div class="caregivers-section">
+      <h2 class="section-title">Cuidadores</h2>
+      @if (caregivers.length > 0) {
+        <div class="caregivers-list">
+          @for (caregiver of caregivers; track caregiver.userId) {
+            <div class="caregiver-item">
+              <div class="caregiver-avatar">
+                @if (caregiver.image) {
+                  <img [src]="caregiver.image" alt="{{ caregiver.name }}" class="avatar-image">
+                } @else {
+                  {{ caregiver.name.charAt(0).toUpperCase() }}
+                }
+              </div>
+              <div class="caregiver-info">
+                <p class="caregiver-name">{{ caregiver.name }}</p>
+                <p class="caregiver-role">{{ getRoleLabel(caregiver.role) }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="no-caregivers">No hay cuidadores asignados</p>
+      }
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="btn btn-primary" (click)="editDependent()">
+        Editar perfil
+      </button>
+      <button class="btn btn-secondary" (click)="openExportModal()">
+        Exportar información
+      </button>
+      <button class="btn btn-danger" (click)="openDeleteModal()">
+        Eliminar perfil
+      </button>
+    </div>
+
+    <!-- Delete Modal -->
+    @if (showDeleteModal) {
+      <app-delete-dependent-modal
+        [dependentName]="dependent.name"
+        [dependentId]="dependentId || ''"
+        (closeModal)="closeDeleteModal()">
+      </app-delete-dependent-modal>
+    }
+
+    <!-- Export Modal -->
+    @if (showExportModal) {
+      <app-export-data
+        [dependent]="dependent"
+        [medications]="medications"
+        [tasks]="tasks"
+        [appointments]="appointments"
+        [caregivers]="caregivers"
+        (closeModal)="closeExportModal()">
+      </app-export-data>
+    }
+  } @else {
+    <div class="error-state">
+      <p>No se encontró el dependiente</p>
+      <button class="btn btn-primary" (click)="goBack()">Volver</button>
+    </div>
+  }
+</div>
