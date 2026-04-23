@@ -1,0 +1,22 @@
+{
+  "projects": {
+    "default": "demo-project"
+  },
+  "targets": {
+    "demo-project": {
+      "hosting": {
+        "amanah-app": [
+          "amanah-app"
+        ]
+      }
+    },
+    "carely-app-8a882": {
+      "hosting": {
+        "amanah-app": [
+          "amanah-app-4e59f"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
