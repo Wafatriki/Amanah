@@ -7,8 +7,7 @@
     </div>
     @if (canCreateMedication()) {
       <button class="btn-primary" (click)="createNewMedication()" [disabled]="loading">
-        <img src="/assets/icons/mas.png" alt="Nueva" class="btn-icon">
-        Nueva Medicación
+        + Nueva Medicación
       </button>
     }
   </div>
@@ -25,13 +24,14 @@
 
   <!-- No medications -->
   <div *ngIf="!loading && medications.length === 0" class="empty-state">
-    <div class="empty-icon"></div>
-    <p class="empty-title">Sin medicaciones registradas</p>
-    <p class="empty-subtitle">No hay medicaciones registradas para {{ activeDependentName }}.</p>
+    <div class="empty-icon">Sin medicaciones</div>
+    <p class="empty-title">No hay medicaciones</p>
+    <p class="empty-subtitle">
+      No hay medicaciones registradas para {{ activeDependentName }}.
+    </p>
     @if (canCreateMedication()) {
-      <button class="btn-primary" (click)="createNewMedication()">
-        <img src="/assets/icons/mas.png" alt="Agregar" class="btn-icon">
-        Agregar Primera Medicación
+      <button class="btn-create-empty" (click)="createNewMedication()">
+        + Nueva Medicación
       </button>
     }
   </div>
@@ -128,10 +128,6 @@
         <div class="info-item">
           <span class="label">Dosis:</span>
           <span class="value">{{ medication.dose }}</span>
-        </div>
-        <div *ngIf="medication.activeIngredient" class="info-item">
-          <span class="label">Principio Activo:</span>
-          <span class="value">{{ medication.activeIngredient }}</span>
         </div>
         <div *ngIf="medication.indication" class="info-item">
           <span class="label">Indicación:</span>

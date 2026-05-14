@@ -1,8 +1,4 @@
 <div class="document-list">
-  <div class="list-header">
-    <h2>Documentos Clínicos</h2>
-  </div>
-
   <!-- Filtros y búsqueda -->
   <div class="filters-section">
     <div class="search-box">
@@ -12,7 +8,7 @@
         [(ngModel)]="searchTerm"
         (ngModelChange)="onSearchChange()"
       />
-      <span class="search-icon">�</span>
+      <!-- removed stray icon to match other modules -->
     </div>
 
     <div class="filter-box">
@@ -45,8 +41,11 @@
   <div class="documents-container">
     @if (!isLoading && filteredDocuments.length === 0) {
       <div class="empty-state">
-        <span class="empty-icon">Sin documentos</span>
-        <p>No hay documentos{{ searchTerm ? ' que coincidan con tu búsqueda' : '' }}</p>
+        <div class="empty-icon">Sin documentos</div>
+        <p class="empty-title">No hay documentos</p>
+        <p class="empty-subtitle">
+          No hay documentos{{ searchTerm ? ' que coincidan con tu búsqueda' : '' }}
+        </p>
       </div>
     } @else if (!isLoading) {
       <div class="documents-list">

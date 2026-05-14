@@ -156,13 +156,8 @@ export class AppointmentService {
         collection(this.firebaseService.firestore, `dependents/${dependentId}/appointments`),
         this.convertAppointmentToFirestore(appointment)
       ).then(docRef => {
-        // Enviar notificación de nueva cita
-        const doctorName = appointment.doctor || 'Cita médica';
-        const appointmentTime = appointment.time || '';
-        const appointmentDateStr = appointment.date instanceof Date
-          ? appointment.date.toLocaleDateString('es-ES')
-          : new Date(appointment.date).toLocaleDateString('es-ES');
-        this.notificationService.notifyUpcomingAppointment(doctorName, appointmentDateStr, appointmentTime);
+        // NOTA: No enviamos notificación aquí. Las notificaciones se envían solo en los recordatorios programados
+        // que se establecen cuando se carga la cita (generalmente 24 horas, 1 hora o según configuración)
         return docRef.id;
       })
     );

@@ -376,41 +376,23 @@ $info-color: #2196f3;
     text-align: center;
 
     .empty-icon {
-      font-size: 48px;
+      font-size: 64px;
       margin-bottom: 16px;
-      opacity: 0.5;
+      opacity: 0.6;
     }
 
-    h3 {
-      font-size: 20px;
+    .empty-title {
+      font-size: 18px;
       font-weight: 600;
       color: $text-dark;
       margin: 0 0 8px 0;
     }
 
-    p {
+    .empty-subtitle {
       font-size: 14px;
       color: $text-gray;
       margin: 0;
       max-width: 300px;
-    }
-
-    .empty-hint {
-      margin-top: 20px;
-      padding: 12px 16px;
-      background: $gray-light;
-      border-radius: 6px;
-      border-left: 4px solid $primary-color;
-
-      p {
-        margin: 0;
-        font-size: 13px;
-        color: $text-gray;
-
-        strong {
-          color: $text-dark;
-        }
-      }
     }
   }
 }

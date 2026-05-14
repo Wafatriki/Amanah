@@ -109,42 +109,47 @@ $text-gray: #666666;
 }
 
 .empty-state {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: 60px 20px;
-  color: $text-gray;
+  text-align: center;
 
   .empty-icon {
-    font-size: 48px;
+    font-size: 64px;
     margin-bottom: 16px;
+    opacity: 0.6;
   }
 
   .empty-title {
-    color: $text-dark;
     font-size: 18px;
     font-weight: 600;
-    margin: 16px 0 8px 0;
+    color: #333333;
+    margin: 0 0 8px 0;
   }
 
   .empty-subtitle {
     font-size: 14px;
-    color: $text-gray;
+    color: #666666;
     margin: 0 0 24px 0;
   }
 
-  h2 {
-    color: $text-dark;
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0 0 8px 0;
-  }
-
-  p {
-    margin: 0 0 24px 0;
-    font-size: 14px;
-  }
-
-  .btn-primary {
+  .btn-create-empty {
     padding: 12px 24px;
+    background-color: #B8A5D6;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: #a491c7;
+      transform: translateY(-2px);
+    }
   }
 }
 

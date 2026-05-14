@@ -1,11 +1,13 @@
 <div class="documents-container">
   <!-- Header -->
   <div class="documents-header">
-    <h1 class="documents-title">Documentos Clínicos</h1>
+    <div class="header-content">
+      <h1 class="page-title">Documentos</h1>
+      <p class="page-subtitle">Gestiona todos los documentos del dependiente</p>
+    </div>
     @if (canUploadDocument()) {
       <button class="btn-create" (click)="toggleUploadForm()" [class.active]="showUploadForm">
-        <img src="/assets/icons/mas.png" alt="Nuevo" class="btn-icon">
-        {{ showUploadForm ? 'Cerrar' : 'Nuevo Documento' }}
+        {{ showUploadForm ? 'Cerrar' : '+ Nuevo Documento' }}
       </button>
     }
   </div>
@@ -13,13 +15,14 @@
   <!-- No dependent selected -->
   @if (!activeDependentId) {
     <div class="empty-state">
-      <p>Selecciona un dependiente para gestionar sus documentos</p>
+      <div class="empty-icon">Sin documentos</div>
+      <p class="empty-title">Selecciona un dependiente</p>
+      <p class="empty-subtitle">Elige un dependiente para gestionar sus documentos</p>
     </div>
   } @else {
     <!-- Upload form collapsible -->
     @if (showUploadForm) {
       <div class="upload-section">
-        <div class="section-title">Subir Nuevo Documento</div>
         <app-document-upload
           [dependentId]="activeDependentId"
           (documentUploaded)="onDocumentUploaded()"

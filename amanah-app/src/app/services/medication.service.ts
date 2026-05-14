@@ -104,12 +104,8 @@ export class MedicationService {
         collection(this.firebaseService.firestore, `dependents/${dependentId}/medications`),
         this.convertMedicationToFirestore(medication)
       ).then(docRef => {
-        // Enviar notificación de nueva medicación
-        const dose = medication.dose || '';
-        const nextSchedule = medication.schedules && medication.schedules.length > 0
-          ? medication.schedules[0].time
-          : '';
-        this.notificationService.notifyMedication(medication.name, dose, nextSchedule);
+        // NOTA: No enviamos notificación aquí. Las notificaciones se envían solo en los recordatorios programados
+        // según el horario de las dosis (schedules)
         return docRef.id;
       })
     );

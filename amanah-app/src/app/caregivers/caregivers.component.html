@@ -10,8 +10,9 @@
   <!-- No dependiente seleccionado -->
   <div *ngIf="!dependentId && !loading" class="no-dependent-section">
     <div class="empty-state">
-      <h2>No hay dependiente seleccionado</h2>
-      <p>Selecciona un dependiente para ver y gestionar sus cuidadores</p>
+      <div class="empty-icon">Sin dependiente</div>
+      <h2 class="empty-title">No hay dependiente seleccionado</h2>
+      <p class="empty-subtitle">Selecciona un dependiente para ver y gestionar sus cuidadores</p>
       <button class="select-btn" (click)="goToDependentSelector()">
         Ir a Dependientes
       </button>

@@ -6,8 +6,7 @@
       <p class="page-subtitle">Gestiona todas las citas médicas del dependiente</p>
     </div>
     <button class="btn-primary" (click)="createAppointment()" *ngIf="!permissionService.isReadOnly()">
-      <img src="/assets/icons/mas.png" alt="Nueva" class="btn-icon">
-      Nueva Cita
+      + Nueva Cita
     </button>
   </div>
 
@@ -51,8 +50,7 @@
       }}
     </p>
     <button *ngIf="selectedTab === 'upcoming'" class="btn-primary" (click)="createAppointment()" [hidden]="permissionService.isReadOnly()">
-      <img src="/assets/icons/mas.png" alt="Nueva" class="btn-icon">
-      Nueva Cita
+      + Nueva Cita
     </button>
   </div>
 

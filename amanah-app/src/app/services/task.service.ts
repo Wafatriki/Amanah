@@ -97,10 +97,8 @@ export class TaskService {
 
       const docRef = await addDoc(tasksCollection, taskData);
 
-      // Enviar notificación de nueva tarea (solo a otros cuidadores, no al creador)
-      const dueDateStr = task.dueDate ? new Date(task.dueDate).toLocaleDateString('es-ES') : 'Sin fecha';
-      const currentUserId = getAuth().currentUser?.uid;
-      this.notificationService.notifyNewTask(task.title, dueDateStr, currentUserId);
+      // NOTA: No enviamos notificación aquí. Las notificaciones se envían solo en los recordatorios programados (X minutos antes)
+      // basado en las preferencias del usuario (minutesBefore en las opciones de reminder)
 
       return docRef.id;
     } catch (error) {

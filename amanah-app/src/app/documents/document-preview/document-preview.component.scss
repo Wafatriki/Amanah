@@ -23,7 +23,7 @@
 
   .preview-modal {
     background: white;
-    border-radius: 12px;
+    border-radius: 8px;
     width: 100%;
     max-width: 800px;
     max-height: 90vh;
@@ -143,7 +143,7 @@
       }
 
       &.metadata-section {
-        background-color: #fafafa;
+        background-color: #f9f9f9;
         padding: 16px;
         border-radius: 8px;
 
@@ -228,12 +228,12 @@
           padding: 10px;
           background-color: white;
           border-radius: 6px;
-          border-left: 3px solid #1e88e5;
+          border-left: 3px solid #B8A5D6;
           font-size: 13px;
 
           .log-action {
             font-weight: 600;
-            color: #1e88e5;
+            color: #B8A5D6;
             white-space: nowrap;
           }
 
@@ -285,11 +285,11 @@
       }
 
       &.btn-primary {
-        background-color: #1e88e5;
+        background-color: #B8A5D6;
         color: white;
 
         &:hover {
-          background-color: #1565c0;
+          background-color: #a491c7;
         }
       }
 

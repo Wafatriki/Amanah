@@ -25,8 +25,15 @@ if (process.env.NODE_ENV !== 'production') {
   }
 }
 
+// Cloud Functions SIEMPRE usan Firestore Real (no emulator)
+// Aunque el emulator de Functions esté corriendo en localhost:5001
+// Esto asegura que la función lea datos de Firestore production
+console.log('🔐 Configurando Cloud Functions para usar Firestore REAL...');
+delete process.env.FIRESTORE_EMULATOR_HOST;
+
 // Inicializar Firebase Admin
 admin.initializeApp();
+console.log('✅ Firebase Admin inicializado con Firestore REAL');
 
 // Cloud Function que se ejecuta cuando se crea una invitación
 export const sendInvitationEmail = functions.firestore
