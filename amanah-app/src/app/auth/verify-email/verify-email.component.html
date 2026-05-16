@@ -1,0 +1,85 @@
+<div class="verify-email-wrapper">
+  <!-- Header with gradient -->
+  <div class="header">
+    <img src="assets/logos/amanah-logo.svg" alt="Amanah Logo" class="logo">
+  </div>
+
+  <!-- Main content -->
+  <div class="verify-container">
+    <!-- Email icon animation -->
+    <div class="email-icon-container">
+      <div class="email-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+          <path d="M2 6l10 7 10-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="checkmark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="currentColor"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Title and message -->
+    <h1 class="title">Verifica tu correo</h1>
+    <p class="subtitle">Hemos enviado un email de verificación a tu bandeja de entrada.</p>
+    <p class="description">Haz clic en el enlace del email para confirmar tu cuenta y acceder a Amanah.</p>
+
+    <!-- Status messages -->
+    @if (message) {
+      <div class="success-message">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>{{ message }}</span>
+      </div>
+    }
+
+    @if (error) {
+      <div class="error-message">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>{{ error }}</span>
+      </div>
+    }
+
+    <!-- Help text -->
+    <div class="help-text">
+      <p class="help-title">¿No recibiste el email?</p>
+      <ul class="help-list">
+        <li>Revisa tu carpeta de spam</li>
+        <li>Verifica que el email sea correcto</li>
+        <li>Espera unos minutos e intenta reenviar</li>
+      </ul>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="actions">
+      <button 
+        class="btn btn-primary resend-btn"
+        (click)="onResend()"
+        [disabled]="isResending">
+        @if (isResending) {
+          <span class="spinner"></span>
+          Reenviando...
+        } @else {
+          Reenviar email de verificación
+        }
+      </button>
+      <button 
+        class="btn btn-secondary"
+        (click)="onSignOut()">
+        Cerrar sesión
+      </button>
+    </div>
+
+    <!-- Footer note -->
+    <p class="footer-note">
+      Una vez verificado tu correo, podrás iniciar sesión normalmente
+    </p>
+  </div>
+</div>

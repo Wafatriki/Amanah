@@ -16,6 +16,9 @@ export class AuthService {
   }
 
   private initializeAuthState(): void {
+    // Keep auth state in sync. Do NOT auto-sign-out unverified users here
+    // to avoid race conditions during registration flows. Login is blocked
+    // explicitly in `login()` when the email is not verified.
     onAuthStateChanged(this.firebaseService.auth, (user) => {
       this.currentUserSubject.next(user);
     });
@@ -86,14 +89,64 @@ export class AuthService {
       console.log('User document saved in Firestore:', credentials.user.uid);
     } catch (err) {
       console.error('Error saving user document:', err);
+      // Attempt cleanup: delete the created Auth user to avoid orphaned accounts
+      try {
+        console.log('Intentando eliminar usuario Auth creado por error...');
+        await deleteUser(credentials.user);
+        console.log('Usuario Auth eliminado correctamente tras fallo en Firestore');
+      } catch (delErr) {
+        console.warn('No se pudo eliminar el usuario Auth automáticamente:', delErr);
+      }
+
       throw new Error(`No se pudo guardar el perfil de usuario: ${err}`);
     }
 
     return credentials;
   }
 
-  login(email: string, password: string): Promise<any> {
-    return signInWithEmailAndPassword(this.firebaseService.auth, email, password);
+  async login(email: string, password: string): Promise<any> {
+    const credentials = await signInWithEmailAndPassword(this.firebaseService.auth, email, password);
+
+    // If the Auth user email is not verified, allow login for pre-existing accounts
+    // that already have a Firestore profile (created prior to adding strict verification).
+    // This avoids blocking older users who were already using the app.
+    if (!credentials.user.emailVerified) {
+      try {
+        const userDocRef = doc(this.firebaseService.firestore, 'users', credentials.user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        // If user profile exists in Firestore, treat as an existing account and allow login.
+        if (userDocSnap.exists()) {
+          try {
+            await updateDoc(userDocRef, { emailVerified: true }).catch(() => {});
+          } catch {}
+          return credentials;
+        }
+      } catch (err) {
+        console.warn('Error checking Firestore profile for emailVerified fallback:', err);
+      }
+
+      // If no Firestore profile exists, require email verification as normal
+      try {
+        await signOut(this.firebaseService.auth);
+      } catch (err) {
+        console.warn('Error signing out unverified user:', err);
+      }
+
+      const error: any = new Error('Por favor verifica tu correo antes de iniciar sesión.');
+      error.code = 'auth/email-not-verified';
+      throw error;
+    }
+
+    // Mark user document as verified if needed
+    try {
+      const userDocRef = doc(this.firebaseService.firestore, 'users', credentials.user.uid);
+      await updateDoc(userDocRef, { emailVerified: true }).catch(() => { /* ignore if missing */ });
+    } catch (err) {
+      console.warn('No se pudo actualizar emailVerified en Firestore:', err);
+    }
+
+    return credentials;
   }
 
   logout(): Promise<void> {
@@ -129,6 +182,17 @@ export class AuthService {
 
   sendPasswordReset(email: string): Promise<void> {
     return sendPasswordResetEmail(this.firebaseService.auth, email);
+  }
+
+  async resendVerificationEmail(): Promise<void> {
+    const user = this.getCurrentUser();
+    if (!user) throw new Error('No hay usuario autenticado para reenviar verificación');
+    try {
+      await sendEmailVerification(user);
+    } catch (err) {
+      console.error('Error reenviando email de verificación:', err);
+      throw err;
+    }
   }
 
   getUserData(uid: string): Observable<any> {

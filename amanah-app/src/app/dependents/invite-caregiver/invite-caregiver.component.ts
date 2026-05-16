@@ -99,16 +99,28 @@ export class InviteCaregiverComponent implements OnInit {
     this.successMessage = '';
 
     try {
-      await this.invitationService.createInvitation(
+      const { token } = await this.invitationService.createInvitation(
         this.invitedEmail,
         this.dependentId,
         this.role
       );
 
-      this.successMessage = `Invitación enviada a ${this.invitedEmail}`;
-      this.invitedEmail = '';
+      const appUrl = (window.location.origin || 'http://localhost:4200').replace(/\/$/, '');
+      const invitationUrl = `${appUrl}/accept-invitation?token=${encodeURIComponent(token)}`;
 
-      // Llamar Cloud Function para enviar email real (PASO 6)
+      // Abrir el cliente de correo del usuario con un mailto: prellenado
+      const subject = encodeURIComponent('Invitación a Amanah');
+      const body = encodeURIComponent(
+        `Hola,%0D%0A%0D%0ATe han invitado a Amanah como cuidador para ${this.dependentName || 'un dependiente'}.` +
+        `%0D%0APulsa el enlace para aceptar la invitación:%0D%0A${invitationUrl}%0D%0A%0D%0AEl enlace expira en 7 días.`
+      );
+
+      const mailto = `mailto:${encodeURIComponent(this.invitedEmail)}?subject=${subject}&body=${body}`;
+      // Abrimos el cliente de correo en una nueva ventana/redirect
+      window.location.href = mailto;
+
+      this.successMessage = `✅ Invitación creada para ${this.invitedEmail}. Se ha abierto tu cliente de correo para enviar el mensaje.`;
+      this.invitedEmail = '';
     } catch (error) {
       this.errorMessage = 'Error al crear invitación';
       console.error(error);

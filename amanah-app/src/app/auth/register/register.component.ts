@@ -206,16 +206,16 @@ export class RegisterComponent {
         this.isLoading = false;
         this.cdr.markForCheck();
 
-        // Redirigir después de 3 segundos
+        // Navegar a la pantalla de verificación para que el usuario pueda reenviar el correo
         setTimeout(() => {
           const invitationToken = sessionStorage.getItem('invitationToken');
           if (invitationToken) {
             sessionStorage.removeItem('invitationToken');
             this.router.navigate(['/accept-invitation'], { queryParams: { token: invitationToken } });
           } else {
-            this.router.navigate(['/login']);
+            this.router.navigate(['/verify-email']);
           }
-        }, 3000);
+        }, 600);
       })
       .catch((err: any) => {
         const errorCode = err.code || '';

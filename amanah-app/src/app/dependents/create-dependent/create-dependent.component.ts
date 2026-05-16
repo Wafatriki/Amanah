@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,10 +17,6 @@ import { Dependent } from '../../models/dependent.model';
 })
 
 
-
-
-
-
 export class CreateDependentComponent implements OnInit {
   form!: FormGroup;
   loading = false;
@@ -34,7 +30,9 @@ export class CreateDependentComponent implements OnInit {
     private readonly imageUploadService: ImageUploadService,
     private readonly activeDependentService: ActiveDependentService,
     private readonly authService: AuthService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef,
+    private readonly ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
@@ -43,6 +41,7 @@ export class CreateDependentComponent implements OnInit {
 
   initializeForm(): void {
     this.form = this.fb.group({
+      image: [''],
       name: ['', [
         Validators.required,
         Validators.minLength(2),
@@ -64,34 +63,47 @@ export class CreateDependentComponent implements OnInit {
   onFileSelected(event: any): void {
     const file = event.target.files[0];
     if (file) {
-      // Mostrar preview local mientras se sube
+      // Mostrar preview local
       const reader = new FileReader();
       reader.onload = (e: any) => {
-        this.imagePreview = e.target.result;
+        this.ngZone.run(() => {
+          this.imagePreview = e.target.result;
+        });
       };
       reader.readAsDataURL(file);
 
-      // Subir la imagen al backend
-      this.uploadImage(file);
+      // Subir la imagen al backend (fuera de zona de Angular)
+      this.ngZone.runOutsideAngular(() => {
+        setTimeout(() => {
+          this.ngZone.run(() => {
+            void this.uploadImage(file);
+          });
+        }, 0);
+      });
     }
   }
 
   private async uploadImage(file: File): Promise<void> {
     this.isUploadingImage = true;
     this.error = null;
+    this.cdr.markForCheck();
 
     try {
       const response = await this.imageUploadService.uploadImage(file);
-
-      // Guardar la URL de la imagen en el formulario
       const imageUrl = this.imageUploadService.getImageUrl(response.fileId);
-      this.form.patchValue({ image: imageUrl });
-
-      this.isUploadingImage = false;
+      
+      this.ngZone.run(() => {
+        this.form.patchValue({ image: imageUrl });
+        this.isUploadingImage = false;
+        this.cdr.markForCheck();
+      });
     } catch (err) {
-      console.error('Error uploading image:', err);
-      this.error = err instanceof Error ? err.message : 'Error al subir la imagen';
-      this.isUploadingImage = false;
+      this.ngZone.run(() => {
+        console.error('Error uploading image:', err);
+        this.error = err instanceof Error ? err.message : 'Error al subir la imagen';
+        this.isUploadingImage = false;
+        this.cdr.markForCheck();
+      });
     }
   }
 
@@ -161,7 +173,7 @@ export class CreateDependentComponent implements OnInit {
     if (control.hasError('required'))
       return 'El nombre es requerido';
     if (control.hasError('minlength')) return 'Mínimo 2 caracteres';
-    if (control.hasError('maxLength')) return 'Máximo 50 caracteres';
+    if (control.hasError('maxlength')) return 'Máximo 50 caracteres';
     if (control.hasError('pattern')) return 'Solo letras y espacios';
     return '';
   }
@@ -180,7 +192,6 @@ export class CreateDependentComponent implements OnInit {
     if (control.hasError('pattern')) return 'Formato inválido (separa por comas)';
 
     return '';
-}
-
+  }
 
 }

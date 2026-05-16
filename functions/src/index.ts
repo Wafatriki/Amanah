@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import * as path from 'node:path';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -15,8 +15,9 @@ if (process.env.NODE_ENV !== 'production') {
   for (const envFile of envFiles) {
     try {
       const result = require('dotenv').config({ path: envFile });
-      if (!result.error && result.parsed?.GROQ_API_KEY) {
-        console.log(`Loaded env file: ${envFile}`);
+      if (!result.error && result.parsed) {
+        console.log(`✅ Loaded env file: ${envFile}`);
+        console.log(`   Loaded variables: ${Object.keys(result.parsed).join(', ')}`);
         break;
       }
     } catch {
@@ -41,64 +42,18 @@ export const sendInvitationEmail = functions.firestore
   .onCreate(async (snap: any, context: any) => {
     try {
       const invitation = snap.data();
-      
-      console.log('Invitation created:', invitation);
 
-      // Obtener configuración de SendGrid
-      const sendgridKey = process.env.SENDGRID_API_KEY;
-      const sendgridEmail = process.env.SENDGRID_FROM_EMAIL;
-      const appUrl = process.env.APP_URL || 'http://localhost:4200';
+      console.log('✅ Invitation created and stored in Firestore:', {
+        token: invitation.invitationToken,
+        email: invitation.invitedEmail,
+        dependent: invitation.dependentId,
+        expiresAt: invitation.expiresAt
+      });
 
-      // Verificar que tenemos SendGrid configurado
-      if (!sendgridKey) {
-        console.warn('SendGrid API key not configured. Skipping email.');
-        return;
-      }
-
-      sgMail.setApiKey(sendgridKey);
-
-      // Obtener datos del dependiente
-      const dependentRef = admin.firestore().collection('dependents').doc(invitation.dependentId);
-      const dependentSnap = await dependentRef.get();
-      
-      if (!dependentSnap.exists) {
-        console.error('Dependent not found:', invitation.dependentId);
-        return;
-      }
-
-      const dependent = dependentSnap.data();
-      const invitationLink = `${appUrl}/accept-invitation?token=${invitation.invitationToken}`;
-
-      // Construir el email
-      const msg: sgMail.MailDataRequired = {
-        to: invitation.invitedEmail,
-        from: sendgridEmail || 'noreply@amanah.app',
-        subject: `Invitación para cuidar a ${dependent?.name || 'un dependiente'}`,
-        html: `
-          <h2>Invitación para cuidador</h2>
-          <p>Hola,</p>
-          <p>Has sido invitado para cuidar a <strong>${dependent?.name || 'un dependiente'}</strong>.</p>
-          <p>
-            <a href="${invitationLink}" style="background-color: #B8A5D6; color: #1A1A1A; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; margin: 20px 0;">
-              Aceptar Invitación
-            </a>
-          </p>
-          <p>O copia y pega este link en tu navegador:</p>
-          <p><code>${invitationLink}</code></p>
-          <p><strong>Nota:</strong> El link vence en 7 días.</p>
-          <br/>
-          <p>Gracias,<br/><strong>Equipo de Amanah</strong></p>
-        `,
-        text: `Hola,\n\nHas sido invitado para cuidar a ${dependent?.name || 'un dependiente'}.\n\nAccede a este link para aceptar:\n${invitationLink}\n\nNota: El link vence en 7 días.\n\nGracias,\nEquipo de Amanah`
-      };
-
-      // Enviar el email
-      await sgMail.send(msg);
-      console.log('Email sent successfully to:', invitation.invitedEmail);
-
+      console.log('📧 Nota: El usuario debe enviar la invitación manualmente desde su cliente de correo (link ya generado en la UI).');
+      // Sin envío automático - el usuario maneja el email vía mailto:
     } catch (error) {
-      console.error('Error sending invitation email:', error);
-      // No fallar la función, solo registrar el error
+      console.error('Error processing invitation:', error);
     }
   });
 

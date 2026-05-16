@@ -2,6 +2,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { UserRole } from '../models/user.model';
 import { AuthorizationService } from '../services/authorization';
+import { take } from 'rxjs';
 
 /**
  * Guard de autorización basado en roles.
@@ -26,13 +27,35 @@ export const roleGuard = (requiredRoles: UserRole[] | UserRole): CanActivateFn =
     const authorizationService = inject(AuthorizationService);
     const router = inject(Router);
 
-    // Verificar si el usuario tiene al menos uno de los roles requeridos
-    const userRole = authorizationService.getCurrentRole();
-    if (userRole && roles.includes(userRole)) {
-      return true;
-    } else {
-      router.navigate(['/dashboard']);
-      return false;
-    }
+    // Esperar hasta que AuthorizationService tenga un valor de rol, para evitar
+    // condiciones de carrera en el arranque (login -> navegación rápida).
+    return new Promise<boolean>((resolve) => {
+      const timeout = setTimeout(() => {
+        // Fallback: usar rol global o denegar
+        const globalRole = authorizationService.getGlobalRole();
+        if (globalRole && roles.includes(globalRole)) {
+          resolve(true);
+        } else {
+          router.navigate(['/dashboard']);
+          resolve(false);
+        }
+      }, 600);
+
+      // Usar take(1) para evitar manejar la suscripción manualmente
+      authorizationService.userRole$.pipe(take(1)).subscribe((userRole) => {
+        clearTimeout(timeout);
+        if (userRole && roles.includes(userRole)) {
+          resolve(true);
+        } else {
+          const globalRole = authorizationService.getGlobalRole();
+          if (globalRole && roles.includes(globalRole)) {
+            resolve(true);
+          } else {
+            router.navigate(['/dashboard']);
+            resolve(false);
+          }
+        }
+      });
+    });
   }
 }

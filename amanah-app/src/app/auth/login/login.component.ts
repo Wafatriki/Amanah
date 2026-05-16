@@ -89,6 +89,8 @@ export class LoginComponent {
         this.errorMessage = 'Email inválido';
       } else if (errorCode === 'auth/too-many-requests') {
         this.errorMessage = 'Demasiados intentos. Intenta más tarde';
+      } else if (errorCode === 'auth/email-not-verified') {
+        this.errorMessage = 'Tu correo no está verificado. Revisa tu bandeja de entrada y confirma el enlace.';
       } else if (error.message) {
         this.errorMessage = error.message;
       } else {
