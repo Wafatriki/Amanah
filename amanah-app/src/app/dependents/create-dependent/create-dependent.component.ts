@@ -91,7 +91,7 @@ export class CreateDependentComponent implements OnInit {
     try {
       const response = await this.imageUploadService.uploadImage(file);
       const imageUrl = this.imageUploadService.getImageUrl(response.fileId);
-      
+
       this.ngZone.run(() => {
         this.form.patchValue({ image: imageUrl });
         this.isUploadingImage = false;
