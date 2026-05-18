@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { AuthorizationService } from './authorization';
+import { ActiveDependentService } from './active-dependent.service';
 import { FirebaseService } from './firebase.service';
 import { AuthService } from './auth.service';
 import { UserRole } from '../models/user.model';
@@ -12,9 +13,22 @@ export class PermissionService {
 
   constructor(
     private readonly authorizationService: AuthorizationService,
+    private readonly activeDependentService: ActiveDependentService,
     private readonly firebaseService: FirebaseService,
     private readonly authService: AuthService
   ) {}
+
+  private getActiveDependentRole(): 'primary_caregiver' | 'collaborative_caregiver' | 'invited' | null {
+    return this.activeDependentService.getActiveDependentRole();
+  }
+
+  private isGlobalManager(role: UserRole | null): boolean {
+    return role === UserRole.ADMIN || role === UserRole.PRIMARY_CAREGIVER;
+  }
+
+  private isDependentWriter(role: 'primary_caregiver' | 'collaborative_caregiver' | 'invited' | null): boolean {
+    return role === 'primary_caregiver' || role === 'collaborative_caregiver';
+  }
 
   /**
    * Verificar si el usuario actual puede crear dependientes
@@ -23,7 +37,7 @@ export class PermissionService {
    */
   canCreateDependent(): boolean {
     const role = this.authorizationService.getGlobalRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    return this.isGlobalManager(role);
   }
 
   /**
@@ -32,8 +46,11 @@ export class PermissionService {
    * También pueden ver a otros cuidadores del dependiente
    */
   canEditDependent(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    const dependentRole = this.getActiveDependentRole();
+    return this.isDependentWriter(dependentRole);
   }
 
   /**
@@ -41,8 +58,11 @@ export class PermissionService {
    * Solo Primary Caregiver y Admin
    */
   canDeleteDependent(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return role === UserRole.PRIMARY_CAREGIVER || role === UserRole.ADMIN;
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (globalRole === UserRole.ADMIN) return true;
+
+    const dependentRole = this.getActiveDependentRole();
+    return dependentRole === 'primary_caregiver';
   }
 
   /**
@@ -50,8 +70,11 @@ export class PermissionService {
    * Solo Primary Caregiver y Admin
    */
   canInviteCaregiver(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return role === UserRole.PRIMARY_CAREGIVER || role === UserRole.ADMIN;
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (globalRole === UserRole.ADMIN) return true;
+
+    const dependentRole = this.getActiveDependentRole();
+    return dependentRole === 'primary_caregiver';
   }
 
   /**
@@ -59,8 +82,11 @@ export class PermissionService {
    * Solo Primary Caregiver y Admin
    */
   canChangeRole(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return role === UserRole.PRIMARY_CAREGIVER || role === UserRole.ADMIN;
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (globalRole === UserRole.ADMIN) return true;
+
+    const dependentRole = this.getActiveDependentRole();
+    return dependentRole === 'primary_caregiver';
   }
 
   /**
@@ -68,119 +94,148 @@ export class PermissionService {
    * Todos excepto Invited (invitados solo leen, no ven todo)
    */
   canViewDependent(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return role !== null && role !== UserRole.INVITED;
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (globalRole === UserRole.ADMIN) return true;
+
+    const dependentRole = this.getActiveDependentRole();
+    return dependentRole !== null && dependentRole !== 'invited';
   }
 
   /**
    * Verificar si el usuario actual es solo lectura (Invited)
    */
   isReadOnly(): boolean {
-    return this.authorizationService.getCurrentRole() === UserRole.INVITED;
+    return this.getActiveDependentRole() === 'invited';
   }
 
   /**
    * Verificar si el usuario actual puede crear citas
    */
   canCreateAppointment(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede editar citas
    */
   canEditAppointment(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede eliminar citas
    */
   canDeleteAppointment(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede crear tareas
    */
   canCreateTask(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede editar tareas
    */
   canEditTask(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede eliminar tareas
    */
   canDeleteTask(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede crear medicamentos
    */
   canCreateMedication(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede editar medicamentos
    */
   canEditMedication(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede eliminar medicamentos
    */
   canDeleteMedication(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede cargar documentos
    */
   canUploadDocument(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede editar documentos
    */
   canEditDocument(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario actual puede ver documentos
    */
   canViewDocument(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return role !== null;
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (globalRole === UserRole.ADMIN) return true;
+
+    return this.getActiveDependentRole() !== null;
   }
 
   /**
    * Verificar si el usuario actual puede eliminar documentos
    */
   canDeleteDocument(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
@@ -188,8 +243,10 @@ export class PermissionService {
    * Solo cuidadores, no invitados
    */
   canAccessChat(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
@@ -197,51 +254,59 @@ export class PermissionService {
    * Solo cuidadores, no invitados
    */
   canSendMessage(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return [UserRole.PRIMARY_CAREGIVER, UserRole.COLLABORATIVE_CAREGIVER, UserRole.ADMIN].includes(role!);
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (this.isGlobalManager(globalRole)) return true;
+
+    return this.isDependentWriter(this.getActiveDependentRole());
   }
 
   /**
    * Verificar si el usuario es admin
    */
   isAdmin(): boolean {
-    return this.authorizationService.getCurrentRole() === UserRole.ADMIN;
+    return this.authorizationService.getGlobalRole() === UserRole.ADMIN;
   }
 
   /**
    * Verificar si el usuario es dependiente
    */
   isDependent(): boolean {
-    return this.authorizationService.getCurrentRole() === UserRole.DEPENDENT;
+    return this.authorizationService.getGlobalRole() === UserRole.DEPENDENT;
   }
 
   /**
    * Verificar si el usuario es cuidador (principal o colaborativo)
    */
   isCaregiver(): boolean {
-    const role = this.authorizationService.getCurrentRole();
-    return role === UserRole.PRIMARY_CAREGIVER || role === UserRole.COLLABORATIVE_CAREGIVER;
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (globalRole === UserRole.ADMIN || globalRole === UserRole.PRIMARY_CAREGIVER) return true;
+
+    const dependentRole = this.getActiveDependentRole();
+    return dependentRole === 'primary_caregiver' || dependentRole === 'collaborative_caregiver';
   }
 
   /**
    * Verificar si el usuario es cuidador principal
    */
   isPrimaryCaregiver(): boolean {
-    return this.authorizationService.getCurrentRole() === UserRole.PRIMARY_CAREGIVER;
+    const globalRole = this.authorizationService.getGlobalRole();
+    if (globalRole === UserRole.ADMIN || globalRole === UserRole.PRIMARY_CAREGIVER) return true;
+
+    return this.getActiveDependentRole() === 'primary_caregiver';
   }
 
   /**
    * Verificar si el usuario es cuidador colaborativo
    */
   isCollaborativeCaregiver(): boolean {
-    return this.authorizationService.getCurrentRole() === UserRole.COLLABORATIVE_CAREGIVER;
+    return this.getActiveDependentRole() === 'collaborative_caregiver';
   }
 
   /**
    * Verificar si el usuario es invitado (solo lectura)
    */
   isInvited(): boolean {
-    return this.authorizationService.getCurrentRole() === UserRole.INVITED;
+    return this.getActiveDependentRole() === 'invited';
   }
 
   /**
@@ -263,8 +328,13 @@ export class PermissionService {
         return caregiverDoc.data()['role'] as 'primary_caregiver' | 'collaborative_caregiver' | 'invited';
       }
 
-      // Si no existe en caregiver_dependents, retorna el rol global del usuario
-      return this.authorizationService.getCurrentRole() as 'primary_caregiver' | 'collaborative_caregiver' | 'invited' | null;
+      // Si no existe en caregiver_dependents, usa el rol global de la cuenta solo como fallback
+      const globalRole = this.authorizationService.getGlobalRole();
+      if (globalRole === UserRole.ADMIN || globalRole === UserRole.PRIMARY_CAREGIVER) {
+        return 'primary_caregiver';
+      }
+
+      return null;
     } catch (error) {
       console.error('Error obteniendo rol para dependiente:', error);
       return null;

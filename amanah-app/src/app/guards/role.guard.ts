@@ -42,7 +42,7 @@ export const roleGuard = (requiredRoles: UserRole[] | UserRole): CanActivateFn =
       }, 600);
 
       // Usar take(1) para evitar manejar la suscripción manualmente
-      authorizationService.userRole$.pipe(take(1)).subscribe((userRole) => {
+      authorizationService.globalUserRole$.pipe(take(1)).subscribe((userRole) => {
         clearTimeout(timeout);
         if (userRole && roles.includes(userRole)) {
           resolve(true);

@@ -27,11 +27,6 @@ export class NotificationService {
   private notificationCounter = 0;
   private serviceWorkerRegistration: ServiceWorkerRegistration | null = null;
   private readonly STORAGE_KEY = 'amanah_notifications';
-  private readonly MAX_NOTIFICATIONS = 50; // Límite máximo de notificaciones
-  private readonly DUPLICATE_CHECK_TIME = 5000; // 5 segundos para evitar duplicados
-
-  // Registro de notificaciones recientes para evitar duplicados
-  private recentNotifications: Map<string, number> = new Map();
 
   // Almacenar timers programados para poder cancelarlos
   private readonly scheduledTimers: Map<string, number> = new Map();
@@ -148,20 +143,12 @@ export class NotificationService {
 
   /**
    * Envía una notificación push al dispositivo
-   * NOTA: Solo debería llamarse desde notificaciones programadas (recordatorios)
    */
   sendNotification(title: string, options?: NotificationOptions & { type?: string }): void {
     console.log(`[SEND-NOTIF] Intentando enviar notificación. Permiso: ${this.notificationPermission}`);
 
     if (this.notificationPermission !== 'granted') {
       console.warn(`[SEND-NOTIF] ❌ Permisos de notificación NO concedidos (${this.notificationPermission})`);
-      return;
-    }
-
-    // Verificar si es un duplicado reciente
-    const notifKey = `${title}-${options?.body || ''}`;
-    if (this.isDuplicateNotification(notifKey)) {
-      console.warn(`[SEND-NOTIF] ⚠️ Notificación duplicada detectada, ignorando: "${title}"`);
       return;
     }
 
@@ -190,8 +177,6 @@ export class NotificationService {
         };
       }
 
-      // Marcar como enviado recientemente
-      this.recentNotifications.set(notifKey, Date.now());
       console.log(`[SEND-NOTIF] ✅ Notificación enviada: "${title}"`);
     } catch (error) {
       console.error(`[SEND-NOTIF] ❌ Error enviando notificación:`, error);
@@ -199,43 +184,19 @@ export class NotificationService {
   }
 
   /**
-   * Verifica si una notificación es duplicada en base al tiempo reciente
-   */
-  private isDuplicateNotification(key: string): boolean {
-    const lastTime = this.recentNotifications.get(key);
-    if (!lastTime) return false;
-
-    const now = Date.now();
-    const isDuplicate = now - lastTime < this.DUPLICATE_CHECK_TIME;
-
-    // Limpiar si ya pasó el tiempo
-    if (isDuplicate) {
-      return true;
-    }
-
-    // Limpiar entrada antigua
-    if (now - lastTime > this.DUPLICATE_CHECK_TIME) {
-      this.recentNotifications.delete(key);
-    }
-
-    return false;
-  }
-
-  /**
-   * Notificación de nueva tarea - SOLO al centro de notificaciones
-   * Las notificaciones push se envían solo si hay un recordatorio configurado
+   * Notificación de nueva tarea - NO se envía al creador
    */
   notifyNewTask(taskTitle: string, dueDate: string, createdByUserId?: string): void {
     // No enviar notificación al usuario que creó la tarea
     if (createdByUserId && createdByUserId === this.getCurrentUserId()) {
-      console.log('[notifyNewTask] No notificar al creador de la tarea');
+      console.log('No notificar al creador de la tarea');
       return;
     }
 
     const id = this.generateId();
     const notification: AppNotification = {
       id,
-      title: '✅ Nueva Tarea',
+      title: 'Nueva Tarea',
       body: `${taskTitle} - Vencimiento: ${dueDate}`,
       type: 'task',
       timestamp: new Date(),
@@ -243,20 +204,22 @@ export class NotificationService {
       createdByUserId
     };
 
-    console.log('[notifyNewTask] Agregando notificación al centro (sin push)');
     this.addNotification(notification);
-    // NO enviar notificación push aquí - solo al recordatorio
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/icons/task.png',
+      tag: `task-${taskTitle}-${dueDate}-${id}`,
+    });
   }
 
   /**
-   * Notificación de cita próxima (llamada por reminder programado)
-   * NOTA: Solo para notificaciones push de recordatorios programados
+   * Notificación de cita próxima
    */
   notifyUpcomingAppointment(doctor: string, date: string, time: string): void {
     const id = this.generateId();
     const notification: AppNotification = {
       id,
-      title: '📅 Recordatorio: Cita Próxima',
+      title: '📅 Hora de la Cita',
       body: `${doctor} - ${date} a las ${time}`,
       type: 'appointment',
       timestamp: new Date(),
@@ -267,37 +230,38 @@ export class NotificationService {
     this.sendNotification(notification.title, {
       body: notification.body,
       icon: '/assets/icons/estetoscopio.png',
-      tag: `appointment-${doctor}-${date}`,
+      tag: `appointment-${doctor}-${date}-${id}`,
     });
   }
 
   /**
-   * Notificación de medicación (llamada por reminder programado)
-   * NOTA: Solo para notificaciones push de recordatorios programados
+   * Notificación de medicación
    */
   notifyMedication(medicationName: string, dose: string, time: string): void {
-    console.log(`[notifyMedication] Enviando notificación de medicación: ${medicationName}`);
+    console.log(`[notifyMedication] Creando notificación para medicación: ${medicationName}`);
     const id = this.generateId();
     const notification: AppNotification = {
       id,
-      title: '💊 Recordatorio: Hora de Medicación',
+      title: '💊 Hora de Medicación',
       body: `${medicationName} (${dose}) - ${time}`,
       type: 'medication',
       timestamp: new Date(),
       icon: '/assets/medication-icons/pastillas.png'
     };
 
+    console.log(`[notifyMedication] Añadiendo notificación a la lista`);
     this.addNotification(notification);
 
+    console.log(`[notifyMedication] Enviando notificación push`);
     this.sendNotification(notification.title, {
       body: notification.body,
       icon: '/assets/medication-icons/pastillas.png',
-      tag: `medication-${medicationName}-${time}`,
+      tag: `medication-${medicationName}-${time}-${id}`,
     });
   }
 
   /**
-   * Notificación de nuevo mensaje - SOLO al centro de notificaciones
+   * Notificación de nuevo mensaje - NO se envía al remitente
    */
   notifyNewMessage(senderName: string, message: string, senderUserId?: string): void {
     // No enviar notificación al usuario que envió el mensaje
@@ -308,7 +272,7 @@ export class NotificationService {
     const id = this.generateId();
     const notification: AppNotification = {
       id,
-      title: '💬 Nuevo Mensaje',
+      title: 'Nuevo Mensaje',
       body: `${senderName}: ${message.substring(0, 50)}...`,
       type: 'message',
       timestamp: new Date(),
@@ -317,16 +281,21 @@ export class NotificationService {
     };
 
     this.addNotification(notification);
-    // NO enviar notificación push para mensajes - solo al centro
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/icons/mensaje.png',
+      tag: 'message',
+    });
   }
 
   /**
-   * Notificación de tarea actualizada - SOLO al centro
+   * Notificación de tarea actualizada - NO se envía al usuario que hizo el cambio
+   * changeType: qué cambió (horario, fecha, descripción, prioridad, etc)
    */
   notifyTaskUpdated(taskTitle: string, dueDate: string, changeType: string = 'se actualizó', updatedByUserId?: string): void {
     // No notificar al usuario que hizo el cambio
     if (updatedByUserId && updatedByUserId === this.getCurrentUserId()) {
-      console.log('[notifyTaskUpdated] No notificar al que actualizó la tarea');
+      console.log('No notificar al que actualizó la tarea');
       return;
     }
 
@@ -334,7 +303,7 @@ export class NotificationService {
     const changeMessage = this.getChangeMessage(changeType);
     const notification: AppNotification = {
       id,
-      title: '📝 Tarea Actualizada',
+      title: 'Tarea Actualizada',
       body: `${taskTitle} ${changeMessage} (Vencimiento: ${dueDate})`,
       type: 'task',
       timestamp: new Date(),
@@ -342,17 +311,21 @@ export class NotificationService {
     };
 
     this.addNotification(notification);
-    // NO enviar notificación push para actualizaciones - solo al centro
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/icons/task.png',
+      tag: 'task-updated',
+    });
   }
 
   /**
-   * Notificación cuando se marca una tarea como completada - SOLO al centro
+   * Notificación cuando se marca una tarea como completada
    */
   notifyTaskCompleted(taskTitle: string, dueDate: string): void {
     const id = this.generateId();
     const notification: AppNotification = {
       id,
-      title: '✔️ Tarea Completada',
+      title: 'Tarea Completada',
       body: `${taskTitle} fue completada (Vencimiento: ${dueDate})`,
       type: 'task',
       timestamp: new Date(),
@@ -360,11 +333,15 @@ export class NotificationService {
     };
 
     this.addNotification(notification);
-    // NO enviar notificación push - solo al centro
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/icons/task.png',
+      tag: 'task-completed',
+    });
   }
 
   /**
-   * Notificación de cita actualizada - SOLO al centro
+   * Notificación de cita actualizada - NO se envía al usuario que hizo el cambio
    */
   notifyAppointmentUpdated(doctor: string, date: string, time: string, changeType: string = 'se actualizó', updatedByUserId?: string): void {
     // No notificar al usuario que hizo el cambio
@@ -376,7 +353,7 @@ export class NotificationService {
     const changeMessage = this.getChangeMessage(changeType);
     const notification: AppNotification = {
       id,
-      title: '📝 Cita Actualizada',
+      title: 'Cita Actualizada',
       body: `${doctor} ${changeMessage} (${date} a las ${time})`,
       type: 'appointment',
       timestamp: new Date(),
@@ -384,17 +361,21 @@ export class NotificationService {
     };
 
     this.addNotification(notification);
-    // NO enviar notificación push - solo al centro
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/icons/estetoscopio.png',
+      tag: 'appointment-updated',
+    });
   }
 
   /**
-   * Notificación cuando se marca una cita como completada - SOLO al centro
+   * Notificación cuando se marca una cita como completada
    */
   notifyAppointmentCompleted(doctor: string, date: string, time: string): void {
     const id = this.generateId();
     const notification: AppNotification = {
       id,
-      title: '✔️ Cita Completada',
+      title: 'Cita Completada',
       body: `${doctor} fue completada (${date} a las ${time})`,
       type: 'appointment',
       timestamp: new Date(),
@@ -402,11 +383,15 @@ export class NotificationService {
     };
 
     this.addNotification(notification);
-    // NO enviar notificación push - solo al centro
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/icons/estetoscopio.png',
+      tag: 'appointment-completed',
+    });
   }
 
   /**
-   * Notificación de medicación actualizada - SOLO al centro
+   * Notificación de medicación actualizada - NO se envía al usuario que hizo el cambio
    */
   notifyMedicationUpdated(medicationName: string, dose: string, time: string, changeType: string = 'se actualizó', updatedByUserId?: string): void {
     // No notificar al usuario que hizo el cambio
@@ -418,7 +403,7 @@ export class NotificationService {
     const changeMessage = this.getChangeMessage(changeType);
     const notification: AppNotification = {
       id,
-      title: '📝 Medicación Actualizada',
+      title: 'Medicación Actualizada',
       body: `${medicationName} ${changeMessage} (${dose})`,
       type: 'medication',
       timestamp: new Date(),
@@ -426,17 +411,21 @@ export class NotificationService {
     };
 
     this.addNotification(notification);
-    // NO enviar notificación push - solo al centro
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/medication-icons/pastillas.png',
+      tag: 'medication-updated',
+    });
   }
 
   /**
-   * Notificación cuando se marca una medicación como tomada - SOLO al centro
+   * Notificación cuando se marca una medicación como tomada
    */
   notifyMedicationTaken(medicationName: string, dose: string, time: string): void {
     const id = this.generateId();
     const notification: AppNotification = {
       id,
-      title: '✔️ Medicación Registrada',
+      title: 'Medicación Registrada',
       body: `${medicationName} (${dose}) fue tomada a las ${time}`,
       type: 'medication',
       timestamp: new Date(),
@@ -444,17 +433,21 @@ export class NotificationService {
     };
 
     this.addNotification(notification);
-    // NO enviar notificación push - solo al centro
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/medication-icons/pastillas.png',
+      tag: 'medication-taken',
+    });
   }
 
   /**
-   * Notificación de documento subido - SOLO al centro
+   * Notificación de documento subido
    */
   notifyDocumentUploaded(documentName: string, documentType: string): void {
     const id = this.generateId();
     const notification: AppNotification = {
       id,
-      title: '📄 Documento Subido',
+      title: 'Documento Subido',
       body: `${documentName} (${documentType})`,
       type: 'info',
       timestamp: new Date(),
@@ -462,17 +455,21 @@ export class NotificationService {
     };
 
     this.addNotification(notification);
-    // NO enviar notificación push - solo al centro
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/icons/certificado.png',
+      tag: 'document',
+    });
   }
 
   /**
-   * Notificación de cuidador añadido - SOLO al centro
+   * Notificación de cuidador añadido
    */
   notifyCaregiverAdded(caregiverName: string): void {
     const id = this.generateId();
     const notification: AppNotification = {
       id,
-      title: '👥 Cuidador Añadido',
+      title: 'Cuidador Añadido',
       body: `${caregiverName} ha sido añadido como cuidador`,
       type: 'info',
       timestamp: new Date(),
@@ -480,7 +477,11 @@ export class NotificationService {
     };
 
     this.addNotification(notification);
-    // NO enviar notificación push - solo al centro
+    this.sendNotification(notification.title, {
+      body: notification.body,
+      icon: '/assets/icons/acompañantes.png',
+      tag: 'caregiver',
+    });
   }
 
   /**
@@ -534,30 +535,12 @@ export class NotificationService {
    */
   private addNotification(notification: AppNotification): void {
     const current = this.notificationsSubject.value;
-
-    // Evitar duplicados exactos en los últimos 5 segundos
-    const isDuplicate = current.some(n =>
-      n.title === notification.title &&
-      n.body === notification.body &&
-      (Date.now() - n.timestamp.getTime()) < this.DUPLICATE_CHECK_TIME
-    );
-
-    if (isDuplicate) {
-      console.log(`[addNotification] ⚠️ Notificación duplicada ignorada: "${notification.title}"`);
-      return;
-    }
-
-    // Agregar nueva notificación al inicio
-    let updated = [notification, ...current];
-
-    // Limitar a MAX_NOTIFICATIONS (50)
-    if (updated.length > this.MAX_NOTIFICATIONS) {
-      console.log(`[addNotification] Límite de notificaciones alcanzado (${this.MAX_NOTIFICATIONS}), eliminando las más antiguas`);
-      updated = updated.slice(0, this.MAX_NOTIFICATIONS);
-    }
-
+    const updated = [notification, ...current];
     this.notificationsSubject.next(updated);
     this.saveToLocalStorage();
+
+    // Ya no auto-eliminamos las notificaciones
+    // El usuario las puede eliminar manualmente desde el historial
   }
 
   /**

@@ -42,7 +42,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
   sortBy: 'dueDate' | 'priority' | 'createdAt' = 'dueDate';
   selectedCaregiverId: string | null = null;
   showFilters = false;  // Control de visibilidad del panel de filtros
-  showAllTasks = true; // Por defecto mostrar todas las tareas del dependiente
+  showAllTasks = false; // Por defecto mostrar solo mis tareas asignadas
 
   // Modal de detalles
   showDetailModal = false;
@@ -323,8 +323,8 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.showFilters = false;
   }
 
-  setShowAllTasks(showAll: boolean): void {
-    this.showAllTasks = showAll;
+  toggleShowAllTasks(): void {
+    this.showAllTasks = !this.showAllTasks;
     this.applyFiltersAndSort();
   }
 
