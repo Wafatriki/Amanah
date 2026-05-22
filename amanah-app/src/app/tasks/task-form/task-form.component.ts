@@ -91,6 +91,9 @@ export class TaskFormComponent implements OnInit, OnDestroy {
 
     this.dependentId = activeDependentId;
 
+    // Cargar rol del dependiente para verificar permisos
+    this.loadActiveDependentRole();
+
     // Cargar cuidadores
     this.loadCaregivers();
 
@@ -218,8 +221,20 @@ export class TaskFormComponent implements OnInit, OnDestroy {
   }
 
   private async proceedWithSubmit(): Promise<void> {
-    if (!this.taskForm.valid || !this.dependentId || !this.userId) {
-      console.error('Form is invalid');
+    if (!this.taskForm.valid) {
+      alert('⚠️ Por favor, completa todos los campos requeridos');
+      console.error('Form is invalid:', this.taskForm.errors);
+      return;
+    }
+    
+    if (!this.dependentId) {
+      alert('❌ No se seleccionó un dependiente');
+      this.router.navigate(['/dependent-selector']);
+      return;
+    }
+    
+    if (!this.userId) {
+      alert('❌ No hay sesión de usuario');
       return;
     }
 
@@ -272,7 +287,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
             recurrenceExceptions: updatedExceptions,
             recurrence: this.originalTask?.recurrence, // Preservar la recurrencia original
           };
-          await this.taskService.updateTask(this.taskId, updateData);
+          await this.taskService.updateTask(this.taskId, updateData, this.dependentId || undefined);
           console.log('Task updated with instance exception:', newException);
 
           // La tarea original se mantiene sin cambios en su fecha y recurrencia
@@ -293,11 +308,12 @@ export class TaskFormComponent implements OnInit, OnDestroy {
               minutesBefore: formValue.reminder?.minutesBefore || 60
             }
           };
-          await this.taskService.updateTask(this.taskId, updateData);
+          await this.taskService.updateTask(this.taskId, updateData, this.dependentId || undefined);
           console.log('Task updated (all recurrences)');
         }
       } else {
         // En modo creación, crear tarea nueva
+        console.log('[TASK-FORM] Creating new task with dependentId:', this.dependentId);
         const newTask: Task = {
           dependentId: this.dependentId,
           title: formValue.title,
@@ -315,14 +331,17 @@ export class TaskFormComponent implements OnInit, OnDestroy {
             minutesBefore: formValue.reminder?.minutesBefore || 60
           }
         };
+        console.log('[TASK-FORM] Task object to save:', newTask);
         const newTaskId = await this.taskService.createTask(newTask, this.userId);
-        console.log('Task created:', newTaskId);
+        console.log('[TASK-FORM] Task created with ID:', newTaskId);
       }
 
       // Navegar a la pestaña correcta automáticamente
       this.router.navigate(['/tasks'], { queryParams: { tab } });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving task:', error);
+      const errorMsg = error?.message || 'No se pudo guardar la tarea';
+      alert(`❌ Error: ${errorMsg}`);
     } finally {
       this.submitting = false;
       this.cdr.markForCheck();
@@ -350,16 +369,47 @@ export class TaskFormComponent implements OnInit, OnDestroy {
   }
 
   private loadCaregivers(): void {
-    if (!this.dependentId) return;
+    console.log('[TASK-FORM] loadCaregivers for dependentId:', this.dependentId);
+    if (!this.dependentId) {
+      console.warn('[TASK-FORM] No dependentId available, skipping caregiver load');
+      return;
+    }
 
     this.dependentService
       .getCaregiversForDependent(this.dependentId)
       .then((caregivers) => {
+        console.log('[TASK-FORM] Loaded caregivers:', caregivers);
         this.caregivers = caregivers;
         this.cdr.markForCheck();
       })
       .catch((error) => {
-        console.error('Error loading caregivers:', error);
+        console.error('[TASK-FORM] Error loading caregivers:', error);
+      });
+  }
+
+  private loadActiveDependentRole(): void {
+    console.log('[TASK-FORM] loadActiveDependentRole for userId:', this.userId, 'dependentId:', this.dependentId);
+    if (!this.userId || !this.dependentId) {
+      console.warn('[TASK-FORM] Cannot load role: missing userId or dependentId');
+      return;
+    }
+
+    this.dependentService
+      .getUserRoleForDependent(this.userId, this.dependentId)
+      .then((role: string | null) => {
+        console.log('[TASK-FORM] Loaded dependent role:', role);
+        if (role) {
+          this.activeDependentService.setActiveDependentRole(
+            role as 'primary_caregiver' | 'collaborative_caregiver' | 'invited'
+          );
+          console.log('[TASK-FORM] ✅ Set active dependent role to:', role);
+        } else {
+          console.warn('[TASK-FORM] ⚠️ No role found for user-dependent pair');
+        }
+        this.cdr.markForCheck();
+      })
+      .catch((error: any) => {
+        console.error('[TASK-FORM] Error loading dependent role:', error);
       });
   }
 
@@ -371,7 +421,7 @@ export class TaskFormComponent implements OnInit, OnDestroy {
 
     console.log('Loading task with ID:', this.taskId);
     this.taskService
-      .getTask(this.taskId)
+      .getTask(this.taskId, this.dependentId || undefined)
       .then((task) => {
         console.log('Task loaded:', task);
         if (task) {
@@ -472,21 +522,26 @@ export class TaskFormComponent implements OnInit, OnDestroy {
   }
 
   toggleAssignee(caregiverId: string): void {
+    console.log('[TASK-FORM] toggleAssignee for caregiver:', caregiverId);
     const assignedTo = this.taskForm.get('assignedTo')?.value || [];
     const index = assignedTo.findIndex((a: any) => a.userId === caregiverId);
 
     if (index > -1) {
       assignedTo.splice(index, 1);
+      console.log('[TASK-FORM] Removed caregiver from assignedTo');
     } else {
       // Encontrar el caregiver para obtener su nombre
       const caregiver = this.caregivers.find(c => c.userId === caregiverId);
       if (caregiver) {
         assignedTo.push({ userId: caregiverId, name: caregiver.name });
+        console.log('[TASK-FORM] Added caregiver to assignedTo:', { userId: caregiverId, name: caregiver.name });
       } else {
         assignedTo.push({ userId: caregiverId, name: '' });
+        console.warn('[TASK-FORM] Caregiver not found in caregivers list, added without name');
       }
     }
 
+    console.log('[TASK-FORM] Updated assignedTo:', assignedTo);
     this.taskForm.patchValue({ assignedTo });
   }
 
@@ -496,8 +551,28 @@ export class TaskFormComponent implements OnInit, OnDestroy {
   }
 
   async onSubmit(): Promise<void> {
-    if (!this.taskForm.valid || !this.dependentId || !this.userId) {
-      console.error('Form is invalid');
+    console.log('[TASK-FORM] onSubmit called');
+    console.log('[TASK-FORM] Form valid:', this.taskForm.valid);
+    
+    if (!this.taskForm.valid) {
+      console.error('[TASK-FORM] Form is invalid. Details:');
+      Object.keys(this.taskForm.controls).forEach(key => {
+        const control = this.taskForm.get(key);
+        console.log(`[TASK-FORM]   ${key}: valid=${control?.valid}, errors=${JSON.stringify(control?.errors)}`);
+      });
+      const formValue = this.taskForm.value;
+      console.log('[TASK-FORM] Form value:', formValue);
+      alert('❌ Por favor completa todos los campos requeridos:\n\n• Título\n• Fecha de vencimiento\n• Prioridad\n• Asignar a al menos un cuidador');
+      return;
+    }
+
+    if (!this.dependentId) {
+      alert('❌ No se seleccionó un dependiente');
+      return;
+    }
+
+    if (!this.userId) {
+      alert('❌ No hay sesión de usuario');
       return;
     }
 

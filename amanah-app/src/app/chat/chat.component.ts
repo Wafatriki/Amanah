@@ -440,7 +440,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     // Enviar a la IA
     this.aiChatService
-      .sendMessage(userMessage, this.activeDependentId)
+      .sendMessage(userMessage, this.activeDependentId, this.currentUserId || undefined)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (reply: string) => {

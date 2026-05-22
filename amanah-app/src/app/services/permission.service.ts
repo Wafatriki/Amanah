@@ -42,15 +42,16 @@ export class PermissionService {
 
   /**
    * Verificar si el usuario actual puede editar un dependiente
-   * Primary Caregiver, Collaborative Caregiver, y Admin
-   * También pueden ver a otros cuidadores del dependiente
+   * SOLO Primary Caregiver y Admin
+   * Los cuidadores colaboradores NO pueden editar información del dependiente
    */
   canEditDependent(): boolean {
     const globalRole = this.authorizationService.getGlobalRole();
     if (this.isGlobalManager(globalRole)) return true;
 
     const dependentRole = this.getActiveDependentRole();
-    return this.isDependentWriter(dependentRole);
+    // Solo cuidador principal puede editar, NO colaborador
+    return dependentRole === 'primary_caregiver';
   }
 
   /**

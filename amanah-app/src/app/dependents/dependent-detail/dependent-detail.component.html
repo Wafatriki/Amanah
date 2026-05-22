@@ -124,15 +124,19 @@
 
     <!-- Action Buttons -->
     <div class="action-buttons">
-      <button class="btn btn-primary" (click)="editDependent()">
-        Editar perfil
-      </button>
+      @if (canEditDependent()) {
+        <button class="btn btn-primary" (click)="editDependent()">
+          Editar perfil
+        </button>
+      }
       <button class="btn btn-secondary" (click)="openExportModal()">
         Exportar información
       </button>
-      <button class="btn btn-danger" (click)="openDeleteModal()">
-        Eliminar perfil
-      </button>
+      @if (canDeleteDependent()) {
+        <button class="btn btn-danger" (click)="openDeleteModal()">
+          Eliminar perfil
+        </button>
+      }
     </div>
 
     <!-- Delete Modal -->

@@ -40,7 +40,8 @@ export class InvitationService {
     dependentId: string,
     role: 'primary_caregiver' | 'collaborative_caregiver' | 'invited' = 'collaborative_caregiver'
   ): Promise<{ docId: string; token: string }> {
-    // Validar permisos: Solo cuidador primario puede crear invitaciones
+    console.log('[INVITATION-SERVICE] Creating invitation for:', invitedEmail, 'dependent:', dependentId);
+
     if (!this.permissionService.canInviteCaregiver()) {
       throw new Error('No tienes permisos para invitar cuidadores');
     }
@@ -53,7 +54,7 @@ export class InvitationService {
     const invitation: any = {
       invitationToken: token,
       inviterUserId: currentUser.uid,
-      invitedEmail: invitedEmail.toLowerCase(),
+      invitedEmail: invitedEmail.toLowerCase().trim(),
       dependentId: dependentId,
       role: role,
       status: 'pending',
@@ -115,16 +116,26 @@ export class InvitationService {
 
   // PASO 2C: Aceptar invitación (vincular cuidador con dependiente)
   async acceptInvitation(token: string, userId: string): Promise<void> {
-    console.log('acceptInvitation called with token:', token, 'and userId:', userId);
+    console.log('[INVITATION-SERVICE] ========== ACCEPT INVITATION START ==========');
+    console.log('[INVITATION-SERVICE] token:', token);
+    console.log('[INVITATION-SERVICE] userId:', userId);
 
     const invitation = await this.getInvitationByToken(token);
-    if (!invitation) throw new Error('Invitación inválida o expirada');
+    if (!invitation) {
+      console.error('[INVITATION-SERVICE] Invitation not found or expired');
+      throw new Error('Invitación inválida o expirada');
+    }
 
-    console.log('Invitation found:', invitation);
+    console.log('[INVITATION-SERVICE] Invitation found:');
+    console.log('[INVITATION-SERVICE]   - id:', invitation.id);
+    console.log('[INVITATION-SERVICE]   - dependentId:', invitation.dependentId);
+    console.log('[INVITATION-SERVICE]   - role:', invitation.role);
+    console.log('[INVITATION-SERVICE]   - invitedEmail:', invitation.invitedEmail);
 
     const batch = writeBatch(this.firebaseService.firestore);
 
     // Actualizar invitación como aceptada
+    console.log('[INVITATION-SERVICE] Updating invitation document...');
     batch.update(
       doc(this.firebaseService.firestore, this.invitationCollectionName, invitation.id || ''),
       {
@@ -136,7 +147,11 @@ export class InvitationService {
 
     // Crear relación en caregiver_dependents
     const caregiverDocId = `${userId}_${invitation.dependentId}`;
-    console.log('Creating caregiver_dependent with docId:', caregiverDocId);
+    console.log('[INVITATION-SERVICE] Creating caregiver_dependent document:');
+    console.log('[INVITATION-SERVICE]   - docId:', caregiverDocId);
+    console.log('[INVITATION-SERVICE]   - userId:', userId);
+    console.log('[INVITATION-SERVICE]   - dependentId:', invitation.dependentId);
+    console.log('[INVITATION-SERVICE]   - role:', invitation.role);
 
     batch.set(
       doc(
@@ -149,12 +164,20 @@ export class InvitationService {
         dependentId: invitation.dependentId,
         role: invitation.role,
         createdAt: Timestamp.now(),
+        acceptedAt: Timestamp.now(),
       }
     );
 
-    console.log('Committing batch...');
-    await batch.commit();
-    console.log('Batch committed successfully');
+    console.log('[INVITATION-SERVICE] Committing batch...');
+    try {
+      await batch.commit();
+      console.log('[INVITATION-SERVICE] ✅ Batch committed successfully');
+      console.log('[INVITATION-SERVICE] ========== ACCEPT INVITATION END (SUCCESS) ==========');
+    } catch (error) {
+      console.error('[INVITATION-SERVICE] ❌ Error committing batch:', error);
+      console.error('[INVITATION-SERVICE] ========== ACCEPT INVITATION END (ERROR) ==========');
+      throw error;
+    }
   }
 
   // PASO 2D: Obtener invitaciones pendientes de un usuario (para mostrar en dashboard)

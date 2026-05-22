@@ -13,12 +13,12 @@ export interface AIResponse {
 
 /**
  * AIChatService
- *
+ * 
  * ARQUITECTURA:
  * - Functions: Emulator en dev (localhost:5001), Cloud en prod
  * - Firestore: Real en ambos (dev y prod)
  * - Chat historial: Firestore Emulator en dev (gratis), no se guarda en prod
- *
+ * 
  * COSTOS:
  * - Cloud Functions: ~$0.0000002 por invocación (primeras 2M gratis)
  * - Firestore: Real en prod
@@ -36,12 +36,12 @@ export class AIChatService {
     private readonly chatEmulatorService: ChatFirestoreEmulatorService
   ) {
     this.functions = getFunctions(this.firebaseService.app);
-
+    
     // Conectar a Functions Emulator en desarrollo
     this.connectToEmulator();
-
+    
     console.log('🚀 AIChatService inicializado');
-
+    
     if (this.chatEmulatorService.isAvailable()) {
       console.log('💾 Historial del chat se guardará en Firestore Emulator (GRATIS en desarrollo)');
     }
@@ -80,15 +80,15 @@ export class AIChatService {
 
   /**
    * Envía un mensaje a la IA a través de Cloud Function
-   *
+   * 
    * En desarrollo:
    * - Cloud Function se ejecuta en Functions Emulator (localhost:5001)
    * - Historial se guarda en Firestore Emulator
-   *
+   * 
    * En producción:
    * - Cloud Function se ejecuta en Firebase Cloud
    * - Historial NO se guarda (solo en emulator)
-   *
+   * 
    * @param message Pregunta del usuario
    * @param dependentId ID del dependiente
    * @param userId ID del usuario (para guardar en historial)
@@ -109,13 +109,13 @@ export class AIChatService {
         map((response: any) => {
           console.log('✅ Respuesta de IA recibida');
           const reply = response?.data?.reply || response?.reply || 'Sin respuesta del asistente';
-
+          
           // Guardar en historial del emulador (asincrónico, no bloquea la respuesta)
           if (userId) {
             this.chatEmulatorService.saveChatMessage(userId, dependentId, message, reply)
               .catch(err => console.error('Error guardando en historial:', err));
           }
-
+          
           return reply;
         }),
         catchError((error: any) => {

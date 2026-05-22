@@ -14,12 +14,8 @@ export class App implements OnInit {
   private readonly notificationService = inject(NotificationService);
 
   ngOnInit(): void {
-    // En desarrollo, desactivar SW para evitar cache de bundles viejos
-    if (environment.production) {
-      this.registerServiceWorker();
-    } else {
-      this.unregisterServiceWorkers();
-    }
+    // Siempre limpiar SW/caches para evitar ejecutar bundles obsoletos en hosting.
+    this.forceFreshClient();
 
     // Solicitar permisos de notificación al inicializar
     this.notificationService.requestPermission().then(granted => {
@@ -31,32 +27,23 @@ export class App implements OnInit {
     });
   }
 
-  private registerServiceWorker(): void {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('Service Worker registrado:', registration);
-          // Suscribirse a push notifications
-          this.notificationService.subscribeToPushNotifications(registration);
-        })
-        .catch(error => {
-          console.error('❌ Error registrando Service Worker:', error);
-        });
-    } else {
-      console.warn('Advertencia: Service Worker no soportado en este navegador');
-    }
-  }
-
-  private unregisterServiceWorkers(): void {
+  private forceFreshClient(): void {
     if (!('serviceWorker' in navigator)) return;
 
     navigator.serviceWorker.getRegistrations()
       .then(registrations => {
         registrations.forEach(reg => reg.unregister());
-        console.log('Service Workers desregistrados en desarrollo');
+        console.log('Service Workers desregistrados para evitar caché obsoleta');
       })
       .catch(error => {
         console.warn('No se pudieron desregistrar Service Workers:', error);
       });
+
+    if ('caches' in window) {
+      caches.keys()
+        .then(keys => Promise.all(keys.map(key => caches.delete(key))))
+        .then(() => console.log('CacheStorage limpiado al iniciar'))
+        .catch(error => console.warn('No se pudo limpiar CacheStorage:', error));
+    }
   }
 }

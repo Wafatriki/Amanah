@@ -46,14 +46,14 @@
             <button
               class="filter-btn"
               [class.active]="!showAllTasks"
-              (click)="setShowAllTasks(false)"
+              (click)="toggleShowAllTasks()"
             >
               Mis tareas
             </button>
             <button
               class="filter-btn"
               [class.active]="showAllTasks"
-              (click)="setShowAllTasks(true)"
+              (click)="toggleShowAllTasks()"
             >
               Todas las tareas
             </button>

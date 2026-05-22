@@ -27,20 +27,21 @@ export class NotificationContainerComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   notifications: AppNotification[] = [];
-  visibleNotificationIds = new Set<string>();
+  private initialized = false;
 
   ngOnInit(): void {
     this.notificationService.notifications$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(notifications => {
-        // Solo mostrar notificaciones que aún no han sido cerradas
-        this.notifications = notifications.filter(n => this.visibleNotificationIds.has(n.id));
+        // Ignorar la emisión inicial que contiene el historial almacenado
+        if (!this.initialized) {
+          this.initialized = true;
+          this.notifications = [];
+          return;
+        }
 
-        // Agregar nuevas notificaciones a la lista visible
-        notifications.forEach(n => {
-          if (!this.visibleNotificationIds.has(n.id)) {
-            this.visibleNotificationIds.add(n.id);
-          }
+        queueMicrotask(() => {
+          this.notifications = notifications.length > 0 ? [notifications[0]] : [];
         });
       });
   }
@@ -57,8 +58,6 @@ export class NotificationContainerComponent implements OnInit {
   }
 
   dismissNotification(id: string): void {
-    // Solo remover de la lista visible (toast), NO del historial
-    this.visibleNotificationIds.delete(id);
-    this.notifications = this.notifications.filter(n => n.id !== id);
+    this.notificationService.deleteNotification(id);
   }
 }

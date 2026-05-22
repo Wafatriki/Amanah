@@ -72,14 +72,7 @@ export class CreateDependentComponent implements OnInit {
       };
       reader.readAsDataURL(file);
 
-      // Subir la imagen al backend (fuera de zona de Angular)
-      this.ngZone.runOutsideAngular(() => {
-        setTimeout(() => {
-          this.ngZone.run(() => {
-            void this.uploadImage(file);
-          });
-        }, 0);
-      });
+      void this.uploadImage(file);
     }
   }
 
@@ -89,8 +82,9 @@ export class CreateDependentComponent implements OnInit {
     this.cdr.markForCheck();
 
     try {
+      console.log('Procesando imagen local del dependiente...');
       const response = await this.imageUploadService.uploadImage(file);
-      const imageUrl = this.imageUploadService.getImageUrl(response.fileId);
+      const imageUrl = response.downloadUrl || this.imageUploadService.getImageUrl(response.fileId);
 
       this.ngZone.run(() => {
         this.form.patchValue({ image: imageUrl });

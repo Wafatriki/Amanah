@@ -2,10 +2,12 @@
   <app-sidebar *ngIf="showSidebar()"></app-sidebar>
   <app-header></app-header>
 
-  <main class="main-content" [class.full-height]="isFullHeightRoute()">
+  <main class="main-content" [class.full-height]="isFullHeightRoute()" [class.has-bottom-nav]="showBottomNav()">
     <router-outlet></router-outlet>
   </main>
 
   <app-bottom-nav *ngIf="showBottomNav()"></app-bottom-nav>
+  <!-- Spacer to ensure main content isn't obscured by the fixed bottom navigation on small screens -->
+  <div class="bottom-nav-spacer" *ngIf="showBottomNav()" aria-hidden="true"></div>
   <app-feedback-host></app-feedback-host>
 </div>

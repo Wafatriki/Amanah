@@ -190,6 +190,7 @@ export class MedicationService {
         // Guardar la fecha de hoy en formato YYYY-MM-DD
         const today = new Date();
         const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const actualTime = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
 
         // Actualizar el schedule en el array
         if (schedules[scheduleIndex]) {
@@ -216,7 +217,7 @@ export class MedicationService {
         const medicationName = medicationData['name'] || 'Medicación';
         const dose = medicationData['dose'] || '';
         const scheduleTime = schedules[scheduleIndex]?.time || '';
-        this.notificationService.notifyMedicationTaken(medicationName, dose, scheduleTime);
+        this.notificationService.notifyMedicationTaken(medicationName, dose, scheduleTime, actualTime);
       })()
     );
   }

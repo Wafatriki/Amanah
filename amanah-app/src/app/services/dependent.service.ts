@@ -14,7 +14,7 @@ import {
   getDoc,
   Timestamp,
 } from 'firebase/firestore';
-import { Observable, from, timeout, catchError } from 'rxjs';
+import { Observable, from, timeout, catchError, throwError } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -107,10 +107,10 @@ export class DependentService {
         }
       })()
     ).pipe(
-      timeout(8000),
+      timeout(20000),
       catchError(err => {
-        console.error('Observable error or timeout:', err);
-        return from(Promise.resolve([]));
+        console.error('Observable error or timeout loading dependents:', err);
+        return throwError(() => err);
       })
     );
   }
@@ -372,8 +372,59 @@ export class DependentService {
   }
 
   async getCaregiversForDependent(dependentId: string): Promise<any[]> {
-    console.log('getCaregiversForDependent called with:', dependentId);
+    console.log('[DEPENDENT-SERVICE] ========== GET CAREGIVERS START ==========');
+    console.log('[DEPENDENT-SERVICE] dependentId:', dependentId);
     try {
+      const caregivers: any[] = [];
+      const processedUserIds = new Set<string>();
+
+      // 1. OBTENER DEPENDIENTE Y AGREGAR AL PROPIETARIO/CREADOR
+      console.log('[DEPENDENT-SERVICE] Step 1: Fetching dependent document...');
+      const dependentRef = doc(
+        this.firebaseService.firestore,
+        this.dependentCollectionName,
+        dependentId
+      );
+      const dependentSnap = await getDoc(dependentRef);
+
+      if (dependentSnap.exists()) {
+        const dependentData = dependentSnap.data() as any;
+        console.log('[DEPENDENT-SERVICE] Dependent found:', dependentData.name);
+        
+        // Determinar quién es el propietario (puede estar en ownerId, userId, createdBy o primaryCaregiverId)
+        const ownerUserId = dependentData.ownerId || dependentData.userId || dependentData.createdBy || dependentData.primaryCaregiverId;
+
+        if (ownerUserId && !processedUserIds.has(ownerUserId)) {
+          try {
+            const ownerRef = doc(this.firebaseService.firestore, 'users', ownerUserId);
+            const ownerSnap = await getDoc(ownerRef);
+
+            if (ownerSnap.exists()) {
+              const ownerData = ownerSnap.data();
+              let displayName = ownerData['fullName'] || ownerData['name'];
+              if (!displayName && ownerData['email']) {
+                displayName = ownerData['email'].split('@')[0];
+              }
+
+              caregivers.push({
+                userId: ownerUserId,
+                name: (displayName || 'Sin nombre') + ' (Propietario)',
+                email: ownerData['email'],
+                image: ownerData['image'] || null,
+                role: 'primary_caregiver'
+              });
+              processedUserIds.add(ownerUserId);
+              console.log('[DEPENDENT-SERVICE] Added owner as caregiver:', ownerUserId);
+            }
+          } catch (error) {
+            console.error(`Error fetching owner user ${ownerUserId}:`, error);
+          }
+        }
+      }
+
+      // 2. OBTENER CUIDADORES DE LA RELACIÓN caregiver_dependents
+      console.log('[DEPENDENT-SERVICE] Step 2: Querying caregiver_dependents collection...');
+      console.log('[DEPENDENT-SERVICE] Looking for documents with dependentId:', dependentId);
       const relationsQuery = query(
         collection(
           this.firebaseService.firestore,
@@ -383,10 +434,17 @@ export class DependentService {
       );
 
       const relationsDocs = await getDocs(relationsQuery);
-      const caregivers: any[] = [];
+      console.log('[DEPENDENT-SERVICE] Found', relationsDocs.size, 'relations in caregiver_dependents');
 
       for (const relationDoc of relationsDocs.docs) {
+        console.log('[DEPENDENT-SERVICE] Processing relation:', relationDoc.id, 'data:', relationDoc.data());
         const relationData = relationDoc.data() as any;
+
+        // No procesar nuevamente si ya fue agregado como propietario
+        if (processedUserIds.has(relationData.userId)) {
+          console.log('[DEPENDENT-SERVICE] Skipping duplicate caregiver:', relationData.userId);
+          continue;
+        }
 
         try {
           // Obtener datos del usuario de la colección 'users'
@@ -413,16 +471,74 @@ export class DependentService {
               image: userData['image'] || null,
               role: relationData.role
             });
+            processedUserIds.add(relationData.userId);
+            console.log('[DEPENDENT-SERVICE] Added caregiver:', relationData.userId);
           }
         } catch (error) {
           console.error(`Error fetching user ${relationData.userId}:`, error);
         }
       }
 
+      console.log('[DEPENDENT-SERVICE] ✅ Final caregivers list:');
+      caregivers.forEach((c, idx) => {
+        console.log(`[DEPENDENT-SERVICE]   [${idx}] ${c.name} (${c.role})`);
+      });
+      console.log('[DEPENDENT-SERVICE] ========== GET CAREGIVERS END (SUCCESS) ==========');
       return caregivers;
     } catch (error) {
-      console.error('Error fetching caregivers for dependent:', error);
+      console.error('[DEPENDENT-SERVICE] ❌ Error fetching caregivers for dependent:', error);
+      console.error('[DEPENDENT-SERVICE] ========== GET CAREGIVERS END (ERROR) ==========');
       return [];
+    }
+  }
+
+  async getUserRoleForDependent(
+    userId: string,
+    dependentId: string
+  ): Promise<string | null> {
+    console.log('[DEPENDENT-SERVICE] getUserRoleForDependent called - userId:', userId, 'dependentId:', dependentId);
+    try {
+      // 1. Verificar si es propietario/creador del dependiente
+      const dependentRef = doc(
+        this.firebaseService.firestore,
+        this.dependentCollectionName,
+        dependentId
+      );
+      const dependentSnap = await getDoc(dependentRef);
+
+      if (dependentSnap.exists()) {
+        const dependentData = dependentSnap.data() as any;
+        const isOwner = dependentData.ownerId === userId ||
+                        dependentData.userId === userId ||
+                        dependentData.createdBy === userId ||
+                        dependentData.primaryCaregiverId === userId;
+
+        if (isOwner) {
+          console.log('[DEPENDENT-SERVICE] User is owner/creator - role: primary_caregiver');
+          return 'primary_caregiver';
+        }
+      }
+
+      // 2. Buscar en caregiver_dependents
+      const relationId = `${userId}_${dependentId}`;
+      const relationRef = doc(
+        this.firebaseService.firestore,
+        this.caregiver_dependentsCollectionName,
+        relationId
+      );
+      const relationSnap = await getDoc(relationRef);
+
+      if (relationSnap.exists()) {
+        const role = relationSnap.data()?.['role'];
+        console.log('[DEPENDENT-SERVICE] Found role in caregiver_dependents:', role);
+        return role || null;
+      }
+
+      console.log('[DEPENDENT-SERVICE] No role found for user-dependent pair');
+      return null;
+    } catch (error) {
+      console.error('[DEPENDENT-SERVICE] Error getting user role for dependent:', error);
+      return null;
     }
   }
 

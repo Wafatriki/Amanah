@@ -7,6 +7,8 @@ import { User } from '../../models/user.model';
 import { Dependent } from '../../models/dependent.model';
 import { AuthService } from '../../services/auth.service';
 import { DependentService } from '../../services/dependent.service';
+import { PermissionService } from '../../services/permission.service';
+import { NotificationService } from '../../services/notification.service';
 import { ChangePasswordComponent } from '../../auth/change-password/change-password.component';
 import { DeleteAccountComponent } from '../../auth/delete-account/delete-account.component';
 
@@ -38,6 +40,8 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
     private readonly route: ActivatedRoute,
     private readonly authService: AuthService,
     private readonly dependentService: DependentService,
+    private readonly permissionService: PermissionService,
+    private readonly notificationService: NotificationService,
     private readonly cdr: ChangeDetectorRef
   ) {}
 
@@ -199,7 +203,15 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
   }
 
   onPasswordChanged(): void {
+    this.notificationService.notifyInfo(
+      'Contraseña actualizada',
+      'Se cerrará tu sesión para que inicies con la nueva contraseña.'
+    );
     this.closeChangePasswordModal();
+    setTimeout(() => {
+      this.authService.logout();
+      this.router.navigate(['/login']);
+    }, 1200);
   }
 
   openDeleteAccountModal(): void {
@@ -220,6 +232,14 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
       'invited': 'Invitado'
     };
     return roleLabels[role] || role;
+  }
+
+  canEditOwnProfile(): boolean {
+    return true;
+  }
+
+  canDeleteOwnProfile(): boolean {
+    return true;
   }
 
   replaceWithEmojiAvatar(event: Event): void {

@@ -15,6 +15,44 @@
   flex-direction: column;
 }
 
+/* When bottom navigation is visible on small screens, add bottom padding
+   to avoid content being obscured by the fixed nav (includes safe-area).
+*/
+.main-content.has-bottom-nav {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+}
+
+/* Spacer element inserted after layout to reserve space for fixed bottom nav */
+.bottom-nav-spacer {
+  height: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  width: 100%;
+  display: block;
+}
+
+/* Page-specific bottom padding to avoid overlap with fixed bottom navigation */
+@media (max-width: 767px) {
+  .main-content.has-bottom-nav {
+    --page-offset: calc(var(--bottom-nav-height, 72px) + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  .main-content.has-bottom-nav .dependent-detail-container,
+  .main-content.has-bottom-nav .task-list-container,
+  .main-content.has-bottom-nav .caregivers-page,
+  .main-content.has-bottom-nav .caregiver-profile-container,
+  .main-content.has-bottom-nav .edit-profile-container,
+  .main-content.has-bottom-nav .document-preview-container,
+  .main-content.has-bottom-nav .document-edit-container,
+  .main-content.has-bottom-nav .create-dependent-container,
+  .main-content.has-bottom-nav .export-data-container,
+  .main-content.has-bottom-nav .notifications-container,
+  .main-content.has-bottom-nav .appointments-container {
+    padding-bottom: var(--page-offset);
+    box-sizing: border-box;
+    /* Ensure the page doesn't extend under the fixed bottom nav */
+    min-height: calc(100vh - var(--page-offset));
+  }
+}
+
 /* Full height routes like chat - no scroll on main-content */
 .main-content.full-height {
   overflow-y: hidden;

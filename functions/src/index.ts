@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import * as path from 'node:path';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -15,9 +15,8 @@ if (process.env.NODE_ENV !== 'production') {
   for (const envFile of envFiles) {
     try {
       const result = require('dotenv').config({ path: envFile });
-      if (!result.error && result.parsed) {
-        console.log(`✅ Loaded env file: ${envFile}`);
-        console.log(`   Loaded variables: ${Object.keys(result.parsed).join(', ')}`);
+      if (!result.error && result.parsed?.GROQ_API_KEY) {
+        console.log(`Loaded env file: ${envFile}`);
         break;
       }
     } catch {
@@ -42,18 +41,64 @@ export const sendInvitationEmail = functions.firestore
   .onCreate(async (snap: any, context: any) => {
     try {
       const invitation = snap.data();
+      
+      console.log('Invitation created:', invitation);
 
-      console.log('✅ Invitation created and stored in Firestore:', {
-        token: invitation.invitationToken,
-        email: invitation.invitedEmail,
-        dependent: invitation.dependentId,
-        expiresAt: invitation.expiresAt
-      });
+      // Obtener configuración de SendGrid
+      const sendgridKey = process.env.SENDGRID_API_KEY;
+      const sendgridEmail = process.env.SENDGRID_FROM_EMAIL;
+      const appUrl = process.env.APP_URL || 'http://localhost:4200';
 
-      console.log('📧 Nota: El usuario debe enviar la invitación manualmente desde su cliente de correo (link ya generado en la UI).');
-      // Sin envío automático - el usuario maneja el email vía mailto:
+      // Verificar que tenemos SendGrid configurado
+      if (!sendgridKey) {
+        console.warn('SendGrid API key not configured. Skipping email.');
+        return;
+      }
+
+      sgMail.setApiKey(sendgridKey);
+
+      // Obtener datos del dependiente
+      const dependentRef = admin.firestore().collection('dependents').doc(invitation.dependentId);
+      const dependentSnap = await dependentRef.get();
+      
+      if (!dependentSnap.exists) {
+        console.error('Dependent not found:', invitation.dependentId);
+        return;
+      }
+
+      const dependent = dependentSnap.data();
+      const invitationLink = `${appUrl}/accept-invitation?token=${invitation.invitationToken}`;
+
+      // Construir el email
+      const msg: sgMail.MailDataRequired = {
+        to: invitation.invitedEmail,
+        from: sendgridEmail || 'noreply@amanah.app',
+        subject: `Invitación para cuidar a ${dependent?.name || 'un dependiente'}`,
+        html: `
+          <h2>Invitación para cuidador</h2>
+          <p>Hola,</p>
+          <p>Has sido invitado para cuidar a <strong>${dependent?.name || 'un dependiente'}</strong>.</p>
+          <p>
+            <a href="${invitationLink}" style="background-color: #B8A5D6; color: #1A1A1A; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; margin: 20px 0;">
+              Aceptar Invitación
+            </a>
+          </p>
+          <p>O copia y pega este link en tu navegador:</p>
+          <p><code>${invitationLink}</code></p>
+          <p><strong>Nota:</strong> El link vence en 7 días.</p>
+          <br/>
+          <p>Gracias,<br/><strong>Equipo de Amanah</strong></p>
+        `,
+        text: `Hola,\n\nHas sido invitado para cuidar a ${dependent?.name || 'un dependiente'}.\n\nAccede a este link para aceptar:\n${invitationLink}\n\nNota: El link vence en 7 días.\n\nGracias,\nEquipo de Amanah`
+      };
+
+      // Enviar el email
+      await sgMail.send(msg);
+      console.log('Email sent successfully to:', invitation.invitedEmail);
+
     } catch (error) {
-      console.error('Error processing invitation:', error);
+      console.error('Error sending invitation email:', error);
+      // No fallar la función, solo registrar el error
     }
   });
 
@@ -212,23 +257,19 @@ export const chatAI = functions.https.onCall(async (data: any, context: any) => 
     }
 
     // 6. OBTENER DATOS CONTEXTUALES (SANITIZADOS)
-    const [tasksSnap, medicationsRootSnap, medicationsDependentSnap, appointmentsRootSnap, appointmentsDependentSnap] = await Promise.all([
-      db.collection('tasks').where('dependentId', '==', dependentId).get(),
-      db.collection('medications').where('dependentId', '==', dependentId).get(),
+    // ✅ NUEVA ESTRUCTURA: Lee SOLO de subcollections de dependientes
+    const [tasksDependentSnap, medicationsDependentSnap, appointmentsDependentSnap] = await Promise.all([
+      db.collection(`dependents/${dependentId}/tasks`).get(),
       db.collection(`dependents/${dependentId}/medications`).get(),
-      db.collection('appointments').where('dependentId', '==', dependentId).get(),
       db.collection(`dependents/${dependentId}/appointments`).get()
     ]);
 
-    const medicationDocs = [
-      ...medicationsRootSnap.docs,
-      ...medicationsDependentSnap.docs
-    ];
+    // Combinar con legacy si es necesario (pero priorizar nuevo sistema)
+    const tasksDocs = tasksDependentSnap.docs;
 
-    const appointmentDocs = [
-      ...appointmentsRootSnap.docs,
-      ...appointmentsDependentSnap.docs
-    ];
+    const medicationDocs = medicationsDependentSnap.docs;
+
+    const appointmentDocs = appointmentsDependentSnap.docs;
 
     // 7. CONSTRUIR CONTEXTO SANITIZADO (sin información sensible)
     const today = new Date();
@@ -277,6 +318,10 @@ export const chatAI = functions.https.onCall(async (data: any, context: any) => 
 
       if (startDate > today) return false;
       if (endDate && endDate < today) return false;
+      
+      // FIX: Rechazar tareas vencidas NO recurrentes
+      const frequency = (recurrence.frequency || 'never').toLowerCase();
+      if (frequency === 'never' && startDate < today) return false;
 
       switch (recurrence.frequency) {
         case 'daily':
@@ -316,7 +361,7 @@ export const chatAI = functions.https.onCall(async (data: any, context: any) => 
       }
     };
 
-    const tasksTodayDocs = tasksSnap.docs
+    const tasksTodayDocs = tasksDocs
       .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
       .filter(task => getRecurringTaskSchedulesForToday(task));
 
@@ -587,11 +632,15 @@ export const chatAI = functions.https.onCall(async (data: any, context: any) => 
     );
 
     // 8. CONSTRUIR CONTEXTO PARA LA IA (INFORMACIÓN SANITIZADA)
+    const appointmentDetails = upcomingAppointments.length > 0 
+      ? upcomingAppointments.map(a => `${a.title} el ${a.date} a las ${a.time}`).join('; ')
+      : 'sin próximas citas';
+    
     const contextLines = [
       'CONTEXTO SANITARIO ANONIMIZADO (SIN IDENTIFICADORES PERSONALES):',
       '- Tareas hoy (asignadas al cuidador actual): total ' + visibleTasksTodayDocs.length + ', completadas ' + tasksCompletedToday + ', pendientes ' + Math.max(visibleTasksTodayDocs.length - tasksCompletedToday, 0),
       '- Medicación activa: ' + activeMedications.length + ' medicamento(s), ' + totalDosesToday + ' dosis hoy, ' + dosesTakenToday + ' tomadas, ' + Math.max(totalDosesToday - dosesTakenToday, 0) + ' pendientes',
-      '- Próximas citas: ' + upcomingAppointments.length,
+      '- Próximas citas: ' + upcomingAppointments.length + (upcomingAppointments.length > 0 ? ' (' + appointmentDetails + ')' : ''),
       '- Estado de citas: completadas ' + appointmentStatusSummary.completed + ', canceladas ' + appointmentStatusSummary.cancelled + ', vencidas ' + appointmentStatusSummary.overdue,
       '- No incluir nombres, identificadores, ni detalles innecesarios de salud'
     ];

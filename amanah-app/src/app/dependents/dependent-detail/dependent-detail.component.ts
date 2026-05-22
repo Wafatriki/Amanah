@@ -214,6 +214,14 @@ export class DependentDetailComponent implements OnInit, OnDestroy {
     return roleLabels[role] || role;
   }
 
+  canEditDependent(): boolean {
+    return this.permissionService.canEditDependent();
+  }
+
+  canDeleteDependent(): boolean {
+    return this.permissionService.canDeleteDependent();
+  }
+
   editDependent(): void {
     if (this.dependentId) {
       this.router.navigate(['/edit-dependent', this.dependentId]);

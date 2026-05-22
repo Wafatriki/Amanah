@@ -5,7 +5,9 @@
   right: 0;
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(10px);
-  padding: 10px 20px 20px;
+  /* use a consistent visual height and account for safe-area-inset */
+  --bottom-nav-height: 72px;
+  padding: 10px 20px calc( (var(--bottom-nav-height) - 32px) + env(safe-area-inset-bottom, 0px));
   display: flex;
   justify-content: space-around;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);

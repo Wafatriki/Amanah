@@ -1,8 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, BehaviorSubject } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
+import { Observable } from 'rxjs';
 
 export interface UploadResponse {
   fileId: string;
@@ -16,64 +13,6 @@ export interface UploadResponse {
   providedIn: 'root'
 })
 export class ImageUploadService {
-  private readonly BACKEND_URL = environment.backendUrl || 'http://localhost:3000';
-  private uploadQueue$ = new Subject<{
-    file: File;
-    resolve: (value: UploadResponse) => void;
-    reject: (reason?: any) => void;
-  }>();
-
-  private isUploading = false;
-
-  constructor(private readonly http: HttpClient) {
-    // Procesar cola de subidas secuencialmente
-    this.setupUploadQueue();
-  }
-
-  private setupUploadQueue(): void {
-    let queue: Array<{
-      file: File;
-      resolve: (value: UploadResponse) => void;
-      reject: (reason?: any) => void;
-    }> = [];
-
-    this.uploadQueue$.subscribe(item => {
-      queue.push(item);
-      this.processQueue(queue);
-    });
-  }
-
-  private async processQueue(queue: Array<{
-    file: File;
-    resolve: (value: UploadResponse) => void;
-    reject: (reason?: any) => void;
-  }>): Promise<void> {
-    if (this.isUploading || queue.length === 0) {
-      return;
-    }
-
-    this.isUploading = true;
-    const item = queue.shift();
-
-    if (item) {
-      try {
-        const response = await this.uploadImageToBackend(item.file).toPromise();
-        if (response) {
-          item.resolve(response);
-        }
-      } catch (error) {
-        item.reject(error);
-      }
-    }
-
-    this.isUploading = false;
-
-    // Procesar siguiente item en la cola
-    if (queue.length > 0) {
-      this.processQueue(queue);
-    }
-  }
-
   /**
    * Validar que el archivo es una imagen válida
    */
@@ -93,29 +32,58 @@ export class ImageUploadService {
   }
 
   /**
-   * Subir una imagen al backend
-   */
-  private uploadImageToBackend(file: File): Observable<UploadResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    return this.http.post<UploadResponse>(`${this.BACKEND_URL}/upload`, formData);
-  }
-
-  /**
    * Subir una imagen (método público con validaciones)
    */
-  uploadImage(file: File): Promise<UploadResponse> {
-    return new Promise((resolve, reject) => {
-      // Validar
-      const validation = this.validateImage(file);
-      if (!validation.valid) {
-        reject(new Error(validation.error || 'Archivo inválido'));
-        return;
-      }
+  async uploadImage(file: File): Promise<UploadResponse> {
+    const validation = this.validateImage(file);
+    if (!validation.valid) {
+      throw new Error(validation.error || 'Archivo inválido');
+    }
 
-      // Añadir a la cola de subidas
-      this.uploadQueue$.next({ file, resolve, reject });
+    return new Promise<UploadResponse>((resolve, reject) => {
+      const reader = new FileReader();
+      const timeoutMs = 15000;
+
+      const cleanup = (): void => {
+        clearTimeout(timeoutId);
+        reader.onload = null;
+        reader.onerror = null;
+        reader.onabort = null;
+      };
+
+      const timeoutId = setTimeout(() => {
+        cleanup();
+        reject(new Error('La lectura de la imagen tardó demasiado. Intenta con otra imagen.'));
+      }, timeoutMs);
+
+      reader.onload = () => {
+        cleanup();
+        const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+        if (!dataUrl) {
+          reject(new Error('No se pudo procesar la imagen seleccionada'));
+          return;
+        }
+
+        resolve({
+          fileId: dataUrl,
+          originalName: file.name,
+          size: file.size,
+          mimetype: file.type,
+          downloadUrl: dataUrl,
+        });
+      };
+
+      reader.onerror = () => {
+        cleanup();
+        reject(new Error('No se pudo leer la imagen'));
+      };
+
+      reader.onabort = () => {
+        cleanup();
+        reject(new Error('La lectura de la imagen fue cancelada'));
+      };
+
+      reader.readAsDataURL(file);
     });
   }
 
@@ -123,15 +91,16 @@ export class ImageUploadService {
    * Obtener URL para ver la imagen
    */
   getImageUrl(fileId: string): string {
-    return `${this.BACKEND_URL}/file/${fileId}`;
+    return fileId.startsWith('http') ? fileId : fileId;
   }
 
   /**
-   * Eliminar una imagen del backend
+   * Eliminar una imagen almacenada localmente. No requiere acción remota.
    */
   deleteImage(fileId: string): Observable<{ success: boolean; message: string }> {
-    return this.http.delete<{ success: boolean; message: string }>(
-      `${this.BACKEND_URL}/delete/${fileId}`
-    );
+    return new Observable(observer => {
+      observer.next({ success: true, message: 'Imagen eliminada correctamente' });
+      observer.complete();
+    });
   }
 }

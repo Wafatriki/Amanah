@@ -48,14 +48,21 @@ export class TaskService {
   }
 
   async createTask(task: Task, userId: string): Promise<string> {
+    console.log('[TASK-SERVICE] createTask called with:', { task, userId });
+    
     // Validar permisos: Solo cuidadores pueden crear tareas
     if (!this.permissionService.canCreateTask()) {
+      console.error('[TASK-SERVICE] Permission denied: canCreateTask() returned false');
       throw new Error('No tienes permisos para crear tareas');
     }
 
-    try {
-      const tasksCollection = collection(this.firebaseService.firestore, this.tasksCollectionName);
+    if (!task.dependentId) {
+      console.error('[TASK-SERVICE] Missing dependentId');
+      throw new Error('Task must have a dependentId');
+    }
 
+    try {
+      // Preparar datos ANTES de crear la referencia a la colección
       const taskData: Record<string, any> = {
         title: task.title,
         description: task.description || '',
@@ -95,26 +102,49 @@ export class TaskService {
         },
       };
 
+      const firestorePath = `dependents/${task.dependentId}/tasks`;
+      console.log('[TASK-SERVICE] Saving task to Firestore path:', firestorePath);
+      console.log('[TASK-SERVICE] Task data to save:', taskData);
+      // Guardar en la subcollection del dependiente
+      const tasksCollection = collection(
+        this.firebaseService.firestore,
+        firestorePath
+      );
+
       const docRef = await addDoc(tasksCollection, taskData);
+      console.log('[TASK-SERVICE] ✅ Task created successfully with ID:', docRef.id);
+      console.log('[TASK-SERVICE] ✅ Full path:', `dependents/${task.dependentId}/tasks/${docRef.id}`);
+      console.log('[TASK-SERVICE] Collection reference:', tasksCollection);
+      console.log('[TASK-SERVICE] Firestore instance:', this.firebaseService.firestore);
 
       // NOTA: No enviamos notificación aquí. Las notificaciones se envían solo en los recordatorios programados (X minutos antes)
       // basado en las preferencias del usuario (minutesBefore en las opciones de reminder)
 
       return docRef.id;
-    } catch (error) {
-      console.error('Error creating task:', error);
+    } catch (error: any) {
+      console.error('[TASK-SERVICE] ❌ Error creating task:', error);
+      console.error('[TASK-SERVICE] Error code:', error.code);
+      console.error('[TASK-SERVICE] Error message:', error.message);
+      console.error('[TASK-SERVICE] Full error:', JSON.stringify(error, null, 2));
       throw error;
     }
   }
 
-  async updateTask(id: string, task: Partial<Task>): Promise<void> {
+  async updateTask(id: string, task: Partial<Task>, dependentId?: string): Promise<void> {
     // Validar permisos: Solo cuidadores pueden editar tareas
     if (!this.permissionService.canEditTask()) {
       throw new Error('No tienes permisos para editar tareas');
     }
 
     try {
-      const taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, id);
+      // Si no tenemos dependentId, buscar la tarea primero (fallback)
+      let taskRef;
+      if (dependentId) {
+        taskRef = doc(this.firebaseService.firestore, `dependents/${dependentId}/tasks`, id);
+      } else {
+        // Fallback: buscar en colección global (para tareas antiguas)
+        taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, id);
+      }
 
       const updateData: Record<string, any> = {
         updatedAt: Timestamp.now(),
@@ -168,14 +198,19 @@ export class TaskService {
     }
   }
 
-  async deleteTask(id: string): Promise<void> {
+  async deleteTask(id: string, dependentId?: string): Promise<void> {
     // Validar permisos: Solo cuidadores pueden eliminar tareas
     if (!this.permissionService.canDeleteTask()) {
       throw new Error('No tienes permisos para eliminar tareas');
     }
 
     try {
-      const taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, id);
+      let taskRef;
+      if (dependentId) {
+        taskRef = doc(this.firebaseService.firestore, `dependents/${dependentId}/tasks`, id);
+      } else {
+        taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, id);
+      }
       await deleteDoc(taskRef);
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -183,19 +218,30 @@ export class TaskService {
     }
   }
 
-  async getTask(id: string): Promise<Task | null> {
+  async getTask(id: string, dependentId?: string): Promise<Task | null> {
     try {
-      const taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, id);
-      const taskSnap = await getDoc(taskRef);
+      const taskRefs = dependentId
+        ? [
+            doc(this.firebaseService.firestore, `dependents/${dependentId}/tasks`, id),
+            doc(this.firebaseService.firestore, this.tasksCollectionName, id),
+          ]
+        : [doc(this.firebaseService.firestore, this.tasksCollectionName, id)];
 
-      if (!taskSnap.exists()) {
-        return null;
+      for (const taskRef of taskRefs) {
+        const taskSnap = await getDoc(taskRef);
+        if (!taskSnap.exists()) {
+          continue;
+        }
+
+        const data = taskSnap.data();
+        return this.convertTimestamps({
+          id: taskSnap.id,
+          dependentId: dependentId || data['dependentId'],
+          ...data,
+        });
       }
 
-      return this.convertTimestamps({
-        id: taskSnap.id,
-        ...taskSnap.data(),
-      });
+      return null;
     } catch (error) {
       console.error('Error getting task:', error);
       throw error;
@@ -204,18 +250,23 @@ export class TaskService {
 
   getTasksByDependentLive(dependentId: string): Observable<Task[]> {
     return new Observable((observer) => {
-      const tasksCollection = collection(this.firebaseService.firestore, this.tasksCollectionName);
-      const q = query(tasksCollection, where('dependentId', '==', dependentId));
+      // Usar la subcollection del dependiente
+      const tasksCollection = collection(
+        this.firebaseService.firestore,
+        `dependents/${dependentId}/tasks`
+      );
+      // No necesitamos filtrar por dependentId en la query, ya que estamos dentro de la subcollection
 
       try {
         const unsubscribe = onSnapshot(
-          q,
+          tasksCollection,
           (snapshot) => {
             const tasks: Task[] = [];
             snapshot.forEach((doc) => {
               tasks.push(
                 this.convertTimestamps({
                   id: doc.id,
+                  dependentId,
                   ...doc.data(),
                 })
               );
@@ -278,10 +329,16 @@ export class TaskService {
   async completeTask(
     taskId: string,
     userId: string,
-    timestamp?: Date
+    timestamp?: Date,
+    dependentId?: string
   ): Promise<void> {
     try {
-      const taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, taskId);
+      let taskRef;
+      if (dependentId) {
+        taskRef = doc(this.firebaseService.firestore, `dependents/${dependentId}/tasks`, taskId);
+      } else {
+        taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, taskId);
+      }
       const taskDoc = await getDoc(taskRef);
 
       if (taskDoc.exists()) {
@@ -309,10 +366,16 @@ export class TaskService {
 
   async toggleTaskStatus(
     taskId: string,
-    userId: string
+    userId: string,
+    dependentId?: string
   ): Promise<void> {
     try {
-      const taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, taskId);
+      let taskRef;
+      if (dependentId) {
+        taskRef = doc(this.firebaseService.firestore, `dependents/${dependentId}/tasks`, taskId);
+      } else {
+        taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, taskId);
+      }
       const taskDoc = await getDoc(taskRef);
 
       if (!taskDoc.exists()) {
@@ -343,10 +406,16 @@ export class TaskService {
     taskId: string,
     newStatus: 'completed' | 'pending' | 'overdue',
     userId: string,
-    completedInstances?: string[]
+    completedInstances?: string[],
+    dependentId?: string
   ): Promise<void> {
     try {
-      const taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, taskId);
+      let taskRef;
+      if (dependentId) {
+        taskRef = doc(this.firebaseService.firestore, `dependents/${dependentId}/tasks`, taskId);
+      } else {
+        taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, taskId);
+      }
 
       const updateData: any = {
         status: newStatus,
@@ -373,9 +442,14 @@ export class TaskService {
     }
   }
 
-  async assignTaskToUsers(taskId: string, userIds: string[]): Promise<void> {
+  async assignTaskToUsers(taskId: string, userIds: string[], dependentId?: string): Promise<void> {
     try {
-      const taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, taskId);
+      let taskRef;
+      if (dependentId) {
+        taskRef = doc(this.firebaseService.firestore, `dependents/${dependentId}/tasks`, taskId);
+      } else {
+        taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, taskId);
+      }
       await updateDoc(taskRef, {
         assignedTo: userIds,
         updatedAt: Timestamp.now(),
@@ -390,10 +464,11 @@ export class TaskService {
   async rotateTaskAssignment(
     taskId: string,
     caregivers: any[],
-    userId: string
+    userId: string,
+    dependentId?: string
   ): Promise<void> {
     try {
-      const task = await this.getTask(taskId);
+      const task = await this.getTask(taskId, dependentId);
       if (!task || !caregivers.length) return;
 
       // Encontrar el siguiente cuidador
@@ -403,14 +478,17 @@ export class TaskService {
       const nextIndex = (currentIndex + 1) % caregivers.length;
       const nextCaregiverId = caregivers[nextIndex].userId;
 
-      await updateDoc(
-        doc(this.firebaseService.firestore, this.tasksCollectionName, taskId),
-        {
-          assignedTo: [nextCaregiverId],
-          lastAssignedTo: nextCaregiverId,
-          updatedAt: Timestamp.now(),
-        }
-      );
+      let taskRef;
+      if (dependentId) {
+        taskRef = doc(this.firebaseService.firestore, `dependents/${dependentId}/tasks`, taskId);
+      } else {
+        taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, taskId);
+      }
+      await updateDoc(taskRef, {
+        assignedTo: [nextCaregiverId],
+        lastAssignedTo: nextCaregiverId,
+        updatedAt: Timestamp.now(),
+      });
     } catch (error) {
       console.error('Error rotating task assignment:', error);
       throw error;
@@ -423,10 +501,12 @@ export class TaskService {
     dependentId: string
   ): Promise<Task[]> {
     try {
-      const tasksCollection = collection(this.firebaseService.firestore, this.tasksCollectionName);
+      const tasksCollection = collection(
+        this.firebaseService.firestore,
+        `dependents/${dependentId}/tasks`
+      );
       const q = query(
         tasksCollection,
-        where('dependentId', '==', dependentId),
         where('status', '==', 'pending')
       );
 
@@ -463,7 +543,7 @@ export class TaskService {
           task.status === 'pending' &&
           new Date(task.dueDate) < now
         ) {
-          await this.updateTask(task.id!, { status: 'overdue' });
+          await this.updateTask(task.id!, { status: 'overdue' }, dependentId);
         }
       }
     } catch (error) {

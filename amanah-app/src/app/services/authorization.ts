@@ -41,7 +41,7 @@ export class AuthorizationService {
       } else {
         console.warn('User document does not exist:', uid);
         console.log('Creating user document with default role: primary_caregiver');
-        
+
         // Crear documento de usuario con rol por defecto
         try {
           const { setDoc, doc } = await import('firebase/firestore');

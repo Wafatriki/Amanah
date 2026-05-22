@@ -107,13 +107,13 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
 
       // Cambiar contraseña
       await this.authService.changePassword(currentPassword, newPassword);
-      this.successMessage = 'Contraseña cambiada exitosamente';
+      this.successMessage = 'Contraseña cambiada. Se cerrará la sesión para que vuelvas a entrar con la nueva contraseña.';
 
       // Cerrar modal después de 1.5 segundos
       setTimeout(() => {
         this.success.emit();
         this.onClose();
-      }, 1500);
+      }, 1800);
     } catch (error: any) {
       this.errorMessage = error.message || 'Error al cambiar la contraseña';
       console.error('Error changing password:', error);

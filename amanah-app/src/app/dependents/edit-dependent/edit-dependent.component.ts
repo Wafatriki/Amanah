@@ -7,7 +7,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Dependent } from '../../models/dependent.model';
 import { MedicationService } from '../../services/medication.service';
 import { Medication } from '../../models/medication.model';
-import { ImageUploadService } from '../../services/image-upload.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -36,8 +35,7 @@ export class EditDependentComponent implements OnInit, OnDestroy {
     private readonly authService: AuthService,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
-    private readonly medicationService: MedicationService,
-    private readonly imageUploadService: ImageUploadService
+    private readonly medicationService: MedicationService
   ) {}
 
   ngOnInit(): void {
@@ -153,30 +151,79 @@ export class EditDependentComponent implements OnInit, OnDestroy {
       });
   }
 
-  onFileSelected(event: any): void {
+  async onFileSelected(event: any): Promise<void> {
     const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.imagePreview = e.target.result;
-      };
-      reader.readAsDataURL(file);
-      this.uploadImage(file);
+    if (!file) {
+      return;
     }
-  }
 
-  private async uploadImage(file: File): Promise<void> {
     this.isUploadingImage = true;
+    this.error = null;
+
     try {
-      const response = await this.imageUploadService.uploadImage(file);
-      const imageUrl = this.imageUploadService.getImageUrl(response.fileId);
+      const imageUrl = await this.convertFileToDataUrl(file);
+      this.imagePreview = imageUrl;
       this.form.patchValue({ image: imageUrl });
     } catch (error: any) {
-      this.error = error.message || 'Error al subir la imagen';
+      this.error = error?.message || 'Error al procesar la imagen';
       console.error('Upload error:', error);
     } finally {
       this.isUploadingImage = false;
     }
+  }
+
+  private validateImage(file: File): void {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/jpg'];
+    const maxSize = 5 * 1024 * 1024;
+
+    if (!allowedMimes.includes(file.type)) {
+      throw new Error('Solo se permiten imágenes JPG y PNG');
+    }
+
+    if (file.size > maxSize) {
+      throw new Error('La imagen no debe exceder 5MB');
+    }
+  }
+
+  private convertFileToDataUrl(file: File): Promise<string> {
+    this.validateImage(file);
+
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      const timeoutId = setTimeout(() => {
+        reader.abort();
+        reject(new Error('La lectura de la imagen tardó demasiado. Prueba otra foto.'));
+      }, 15000);
+
+      const cleanup = (): void => {
+        clearTimeout(timeoutId);
+        reader.onload = null;
+        reader.onerror = null;
+        reader.onabort = null;
+      };
+
+      reader.onload = () => {
+        cleanup();
+        const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+        if (!dataUrl) {
+          reject(new Error('No se pudo procesar la imagen seleccionada'));
+          return;
+        }
+        resolve(dataUrl);
+      };
+
+      reader.onerror = () => {
+        cleanup();
+        reject(new Error('No se pudo leer la imagen seleccionada'));
+      };
+
+      reader.onabort = () => {
+        cleanup();
+        reject(new Error('La lectura de la imagen fue cancelada'));
+      };
+
+      reader.readAsDataURL(file);
+    });
   }
 
   async submit(): Promise<void> {

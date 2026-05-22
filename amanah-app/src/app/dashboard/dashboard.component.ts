@@ -832,7 +832,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
 
       // Update in Firestore in the background
-      await this.taskService.setTaskStatus(taskId, newStatus, this.user.uid);
+      await this.taskService.setTaskStatus(taskId, newStatus, this.user.uid, undefined, this.activeDependentId || undefined);
       console.log('Task status updated to:', newStatus);
     } catch (error) {
       console.error('Error updating task status:', error);

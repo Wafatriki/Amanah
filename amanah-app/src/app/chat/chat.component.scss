@@ -930,6 +930,10 @@ $error-color: #e74c3c;
 }
 
 @media (max-width: 768px) {
+  .chat-wrapper {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+
   .ai-messages {
     padding: 12px;
   }
@@ -953,7 +957,7 @@ $error-color: #e74c3c;
   }
 
   .chat-input-section {
-    padding: 10px 12px;
+    padding: 10px 12px calc(18px + env(safe-area-inset-bottom));
   }
 
   .ai-section {

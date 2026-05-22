@@ -14,6 +14,7 @@ export interface AppNotification {
   timestamp: Date;
   onClick?: () => void;
   createdByUserId?: string;
+  dedupeKey?: string;
 }
 
 @Injectable({
@@ -27,13 +28,18 @@ export class NotificationService {
   private notificationCounter = 0;
   private serviceWorkerRegistration: ServiceWorkerRegistration | null = null;
   private readonly STORAGE_KEY = 'amanah_notifications';
+  private readonly SENT_DEDUPE_KEYS_STORAGE = 'amanah_sent_dedupe_keys';
+  private currentUserId: string | null = null;
 
   // Almacenar timers programados para poder cancelarlos
   private readonly scheduledTimers: Map<string, number> = new Map();
+  // Dedupe keys recientementes enviadas (para evitar envíos repetidos)
+  private readonly recentlySentDedupeKeys: Set<string> = new Set();
 
   constructor() {
     this.initializeNotifications();
     this.loadFromLocalStorage();
+    this.loadSentDedupeKeys();
   }
 
   /**
@@ -50,20 +56,34 @@ export class NotificationService {
   }
 
   /**
+   * Clave de almacenamiento aislada por usuario.
+   */
+  private getStorageKey(): string {
+    return this.STORAGE_KEY;
+  }
+
+  /**
+   * Escucha cambios de sesión para recargar notificaciones del usuario activo.
+   */
+  // NOTE: Previously we tracked dismissed/dedupe keys per-user. That logic was removed
+  // to keep a single shared notifications storage key for now.
+
+  /**
    * Carga notificaciones desde localStorage
    */
   private loadFromLocalStorage(): void {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
+      const storageKey = this.getStorageKey();
+      const stored = localStorage.getItem(storageKey);
+
       if (stored) {
         const notifications = JSON.parse(stored) as AppNotification[];
-        // Convertir timestamps strings a Date objects
-        const parsed = notifications.map(n => ({
-          ...n,
-          timestamp: new Date(n.timestamp)
-        }));
+        const parsed = notifications.map(n => ({ ...n, timestamp: new Date(n.timestamp) }));
         this.notificationsSubject.next(parsed);
+        return;
       }
+
+      this.notificationsSubject.next([]);
     } catch (error) {
       console.error('Error cargando notificaciones de localStorage:', error);
       this.notificationsSubject.next([]);
@@ -76,7 +96,7 @@ export class NotificationService {
   private saveToLocalStorage(): void {
     try {
       const notifications = this.notificationsSubject.value;
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(notifications));
+      localStorage.setItem(this.getStorageKey(), JSON.stringify(notifications));
     } catch (error) {
       console.error('Error guardando notificaciones en localStorage:', error);
     }
@@ -204,18 +224,20 @@ export class NotificationService {
       createdByUserId
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/icons/task.png',
-      tag: `task-${taskTitle}-${dueDate}-${id}`,
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/icons/task.png',
+        tag: `task-${taskTitle}-${dueDate}-${id}`,
+      });
+    }
   }
 
   /**
    * Notificación de cita próxima
    */
-  notifyUpcomingAppointment(doctor: string, date: string, time: string): void {
+  notifyUpcomingAppointment(doctor: string, date: string, time: string, dedupeKey?: string): void {
     const id = this.generateId();
     const notification: AppNotification = {
       id,
@@ -223,21 +245,24 @@ export class NotificationService {
       body: `${doctor} - ${date} a las ${time}`,
       type: 'appointment',
       timestamp: new Date(),
-      icon: '/assets/icons/estetoscopio.png'
+      icon: '/assets/icons/estetoscopio.png',
+      dedupeKey
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/icons/estetoscopio.png',
-      tag: `appointment-${doctor}-${date}-${id}`,
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/icons/estetoscopio.png',
+        tag: `appointment-${doctor}-${date}-${id}`,
+      });
+    }
   }
 
   /**
    * Notificación de medicación
    */
-  notifyMedication(medicationName: string, dose: string, time: string): void {
+  notifyMedication(medicationName: string, dose: string, time: string, dedupeKey?: string): void {
     console.log(`[notifyMedication] Creando notificación para medicación: ${medicationName}`);
     const id = this.generateId();
     const notification: AppNotification = {
@@ -246,18 +271,21 @@ export class NotificationService {
       body: `${medicationName} (${dose}) - ${time}`,
       type: 'medication',
       timestamp: new Date(),
-      icon: '/assets/medication-icons/pastillas.png'
+      icon: '/assets/medication-icons/pastillas.png',
+      dedupeKey
     };
 
     console.log(`[notifyMedication] Añadiendo notificación a la lista`);
-    this.addNotification(notification);
+    const added = this.addNotification(notification);
 
-    console.log(`[notifyMedication] Enviando notificación push`);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/medication-icons/pastillas.png',
-      tag: `medication-${medicationName}-${time}-${id}`,
-    });
+    if (added) {
+      console.log(`[notifyMedication] Enviando notificación push`);
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/medication-icons/pastillas.png',
+        tag: `medication-${medicationName}-${time}-${id}`,
+      });
+    }
   }
 
   /**
@@ -280,12 +308,14 @@ export class NotificationService {
       createdByUserId: senderUserId
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/icons/mensaje.png',
-      tag: 'message',
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/icons/mensaje.png',
+        tag: 'message',
+      });
+    }
   }
 
   /**
@@ -310,12 +340,14 @@ export class NotificationService {
       icon: '/assets/icons/task.png'
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/icons/task.png',
-      tag: 'task-updated',
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/icons/task.png',
+        tag: 'task-updated',
+      });
+    }
   }
 
   /**
@@ -332,12 +364,14 @@ export class NotificationService {
       icon: '/assets/icons/task.png'
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/icons/task.png',
-      tag: 'task-completed',
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/icons/task.png',
+        tag: 'task-completed',
+      });
+    }
   }
 
   /**
@@ -360,12 +394,14 @@ export class NotificationService {
       icon: '/assets/icons/estetoscopio.png'
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/icons/estetoscopio.png',
-      tag: 'appointment-updated',
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/icons/estetoscopio.png',
+        tag: 'appointment-updated',
+      });
+    }
   }
 
   /**
@@ -382,12 +418,14 @@ export class NotificationService {
       icon: '/assets/icons/estetoscopio.png'
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/icons/estetoscopio.png',
-      tag: 'appointment-completed',
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/icons/estetoscopio.png',
+        tag: 'appointment-completed',
+      });
+    }
   }
 
   /**
@@ -410,34 +448,45 @@ export class NotificationService {
       icon: '/assets/medication-icons/pastillas.png'
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/medication-icons/pastillas.png',
-      tag: 'medication-updated',
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/medication-icons/pastillas.png',
+        tag: 'medication-updated',
+      });
+    }
   }
 
   /**
    * Notificación cuando se marca una medicación como tomada
    */
-  notifyMedicationTaken(medicationName: string, dose: string, time: string): void {
+  notifyMedicationTaken(medicationName: string, dose: string, scheduledTime: string, actualTime: string = this.getCurrentClockTime()): void {
     const id = this.generateId();
     const notification: AppNotification = {
       id,
       title: 'Medicación Registrada',
-      body: `${medicationName} (${dose}) fue tomada a las ${time}`,
+      body: scheduledTime
+        ? `${medicationName} (${dose}) fue tomada a las ${actualTime} (programada para las ${scheduledTime})`
+        : `${medicationName} (${dose}) fue tomada a las ${actualTime}`,
       type: 'medication',
       timestamp: new Date(),
       icon: '/assets/medication-icons/pastillas.png'
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/medication-icons/pastillas.png',
-      tag: 'medication-taken',
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/medication-icons/pastillas.png',
+        tag: 'medication-taken',
+      });
+    }
+  }
+
+  private getCurrentClockTime(): string {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   }
 
   /**
@@ -454,12 +503,14 @@ export class NotificationService {
       icon: '/assets/icons/certificado.png'
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/icons/certificado.png',
-      tag: 'document',
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/icons/certificado.png',
+        tag: 'document',
+      });
+    }
   }
 
   /**
@@ -476,12 +527,14 @@ export class NotificationService {
       icon: '/assets/icons/acompañantes.png'
     };
 
-    this.addNotification(notification);
-    this.sendNotification(notification.title, {
-      body: notification.body,
-      icon: '/assets/icons/acompañantes.png',
-      tag: 'caregiver',
-    });
+    const added = this.addNotification(notification);
+    if (added) {
+      this.sendNotification(notification.title, {
+        body: notification.body,
+        icon: '/assets/icons/acompañantes.png',
+        tag: 'caregiver',
+      });
+    }
   }
 
   /**
@@ -531,16 +584,55 @@ export class NotificationService {
   }
 
   /**
-   * Añade una notificación a la lista local
+   * Añade una notificación a la lista local.
+   * Devuelve true si la notificación fue añadida, false si se descartó por duplicado.
    */
-  private addNotification(notification: AppNotification): void {
-    const current = this.notificationsSubject.value;
-    const updated = [notification, ...current];
-    this.notificationsSubject.next(updated);
-    this.saveToLocalStorage();
+  private addNotification(notification: AppNotification): boolean {
+    try {
+      const current = this.notificationsSubject.value;
 
-    // Ya no auto-eliminamos las notificaciones
-    // El usuario las puede eliminar manualmente desde el historial
+      // Si la notificación tiene dedupeKey y ya fue enviada recientemente, descartar
+      if (notification.dedupeKey && this.recentlySentDedupeKeys.has(notification.dedupeKey)) {
+        console.log(`[NOTIF-DEDUPE] Descarta notificación por dedupeKey reciente: ${notification.dedupeKey}`);
+        return false;
+      }
+
+      // Simple dedupe: si ya existe una notificación con mismo título y cuerpo
+      // en la ventana de los últimos 5 minutos, no la añadimos de nuevo.
+      const FIVE_MIN = 5 * 60 * 1000;
+      const now = Date.now();
+      const exists = current.some(n =>
+        n.title === notification.title &&
+        n.body === notification.body &&
+        Math.abs(now - new Date(n.timestamp).getTime()) < FIVE_MIN
+      );
+
+      if (exists) {
+        console.log(`[NOTIF-DEDUPE] Descarta notificación duplicada: ${notification.title}`);
+        return false;
+      }
+
+      const updated = [notification, ...current];
+      this.notificationsSubject.next(updated);
+      this.saveToLocalStorage();
+
+      // Marcar dedupeKey como enviada (guardar permanentemente)
+      if (notification.dedupeKey) {
+        try {
+          this.recentlySentDedupeKeys.add(notification.dedupeKey);
+          this.saveSentDedupeKeys();
+        } catch (err) {
+          // no bloquear si falla
+        }
+      }
+
+      // Ya no auto-eliminamos las notificaciones
+      // El usuario las puede eliminar manualmente desde el historial
+      return true;
+    } catch (err) {
+      console.error('Error en addNotification:', err);
+      return false;
+    }
   }
 
   /**
@@ -554,9 +646,39 @@ export class NotificationService {
    * Elimina una notificación específica
    */
   deleteNotification(id: string): void {
+    const removed = this.notificationsSubject.value.find(n => n.id === id);
     const updated = this.notificationsSubject.value.filter(n => n.id !== id);
     this.notificationsSubject.next(updated);
     this.saveToLocalStorage();
+  }
+
+  /**
+   * Carga dedupeKeys enviadas desde localStorage
+   */
+  private loadSentDedupeKeys(): void {
+    try {
+      const stored = localStorage.getItem(this.SENT_DEDUPE_KEYS_STORAGE);
+      if (stored) {
+        const keys = JSON.parse(stored) as string[];
+        keys.forEach(key => this.recentlySentDedupeKeys.add(key));
+      }
+    } catch (error) {
+      console.error('Error cargando dedupeKeys enviadas:', error);
+    }
+  }
+
+  /**
+   * Guarda dedupeKeys enviadas en localStorage
+   */
+  private saveSentDedupeKeys(): void {
+    try {
+      localStorage.setItem(
+        this.SENT_DEDUPE_KEYS_STORAGE,
+        JSON.stringify(Array.from(this.recentlySentDedupeKeys))
+      );
+    } catch (error) {
+      console.error('Error guardando dedupeKeys enviadas:', error);
+    }
   }
 
   /**
@@ -568,10 +690,24 @@ export class NotificationService {
   }
 
   /**
-   * Alias para clearNotifications
+   * Alias para clearNotifications - cancela timers y limpia dedupe keys
    */
   clearAllNotifications(): void {
+    // Limpiar notificaciones del historial
     this.clearNotifications();
+    
+    // Cancelar todos los timers programados
+    this.cancelAllScheduledNotifications();
+    
+    // Limpiar los dedupe keys enviados
+    this.recentlySentDedupeKeys.clear();
+    try {
+      localStorage.removeItem(this.SENT_DEDUPE_KEYS_STORAGE);
+    } catch (error) {
+      console.error('Error borrando dedupeKeys:', error);
+    }
+    
+    console.log('[NOTIF-CLEANUP] ✅ Todas las notificaciones, timers y dedupe keys limpiados');
   }
 
   /**
@@ -651,6 +787,8 @@ export class NotificationService {
       .filter(key => key.startsWith('medication-'))
       .forEach(key => this.cancelScheduledNotification(key));
 
+    const now = new Date();
+
     medications.forEach(medication => {
       console.log(`[DEBUG] Procesando medicación: ${medication.name}`);
       if (medication.schedules && Array.isArray(medication.schedules)) {
@@ -673,9 +811,16 @@ export class NotificationService {
             notificationTime.setMinutes(notificationTime.getMinutes() - minutesBefore);
 
             // Si la hora de notificación ya pasó hoy, programar para mañana
-            if (notificationTime < new Date()) {
+            if (notificationTime < now) {
               scheduledTime.setDate(scheduledTime.getDate() + 1);
+              notificationTime.setDate(notificationTime.getDate() + 1);
               console.log(`[DEBUG] - Hora de notificación ya pasó (${notificationTime.toISOString()} < ahora), reprogramando para mañana`);
+            }
+
+            // NO programar si la notificación sigue siendo pasada después de ajustarla
+            if (notificationTime <= now) {
+              console.log(`[DEBUG] - DESCARTANDO: notificación sigue siendo pasada tras ajuste`);
+              return;
             }
 
             console.log(`[DEBUG] - Llamando scheduleMedicationNotification: ${medication.name}, horario: ${schedule.time}, fecha: ${scheduledTime.toISOString()}, minutesBefore: ${schedule.reminder.minutesBefore || 15}`);
@@ -743,6 +888,8 @@ export class NotificationService {
       .filter(key => key.startsWith('task-'))
       .forEach(key => this.cancelScheduledNotification(key));
 
+    const now = new Date();
+
     tasks.forEach(task => {
       if (
         task.reminder &&
@@ -758,15 +905,16 @@ export class NotificationService {
         const notificationTime = new Date(dueDate);
         notificationTime.setMinutes(notificationTime.getMinutes() - minutesBefore);
 
-        // Solo programar si la notificación aún está en el futuro
-        if (notificationTime > new Date()) {
+        // Solo programar si la notificación aún está en el futuro (NO pasada)
+        if (notificationTime > now) {
           this.scheduleTaskNotification(
             task.title,
             dueDate,
             task.priority,
             task.assignedTo.map((a: any) => a.userId),
             userId,
-            minutesBefore
+              minutesBefore,
+              task.parentTaskId || task.id
           );
         }
       }
@@ -883,7 +1031,8 @@ export class NotificationService {
 
     const timeout = setTimeout(() => {
       console.log(`[NOTIFY] 🔔 ¡ENVIANDO NOTIFICACIÓN DE MEDICACIÓN: ${medicationName}!`);
-      this.notifyMedication(medicationName, dosage, scheduledTime);
+      const dedupeKey = `medication:${medicationName}:${date.toISOString()}:${scheduledTime}`;
+      this.notifyMedication(medicationName, dosage, scheduledTime, dedupeKey);
       this.scheduledTimers.delete(timerId);
     }, timeUntilNotification);
 
@@ -931,7 +1080,8 @@ export class NotificationService {
     }
 
     const timeout = setTimeout(() => {
-      this.notifyUpcomingAppointment(doctor, appointmentDate.toLocaleDateString('es-ES'), appointmentTime);
+      const dedupeKey = `appointment:${doctor}:${appointmentDate.toISOString()}:${appointmentTime}`;
+      this.notifyUpcomingAppointment(doctor, appointmentDate.toLocaleDateString('es-ES'), appointmentTime, dedupeKey);
       this.scheduledTimers.delete(timerId);
     }, timeUntilNotification);
 
@@ -948,7 +1098,8 @@ export class NotificationService {
     priority: string,
     assignedUserIds: string[],
     currentUserId: string,
-    minutesBefore: number = 60
+    minutesBefore: number = 60,
+    sourceKey?: string
   ): void {
     // Solo programar si el usuario actual está en la lista de asignados
     if (!assignedUserIds.includes(currentUserId)) {
@@ -972,7 +1123,7 @@ export class NotificationService {
       return;
     }
 
-    const timerId = `task-${taskTitle}-${dueDate.toISOString()}`;
+    const timerId = sourceKey || `task-${taskTitle}-${dueDate.toISOString()}`;
     const timeUntilNotification = notificationTime.getTime() - now.getTime();
 
     // Cancelar timer anterior si existe
@@ -985,6 +1136,9 @@ export class NotificationService {
     const timeout = setTimeout(() => {
       const title = `${priorityEmoji} Recordatorio: ${taskTitle}`;
       const id = this.generateId();
+      const dedupeKey = sourceKey
+        ? `task:${sourceKey}:${minutesBefore}`
+        : `task:${taskTitle}:${dueDate.toISOString()}:${minutesBefore}`;
 
       // Agregar al historial de notificaciones
       const notification: AppNotification = {
@@ -993,18 +1147,21 @@ export class NotificationService {
         body: `Vencimiento: ${dueDate.toLocaleDateString('es-ES')} a las ${dueDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`,
         type: 'task',
         timestamp: new Date(),
-        icon: '/assets/icons/task.png'
+        icon: '/assets/icons/task.png',
+        dedupeKey
       };
 
       console.log(`[notifyTask] Creando notificación para tarea: ${taskTitle}`);
-      this.addNotification(notification);
+      const added = this.addNotification(notification);
 
-      console.log(`[notifyTask] Enviando notificación push`);
-      this.sendNotification(title, {
-        body: notification.body,
-        icon: '/assets/icons/task.png',
-        tag: `task-${taskTitle}-${dueDate.toISOString()}-${id}`
-      });
+      if (added) {
+        console.log(`[notifyTask] Enviando notificación push`);
+        this.sendNotification(title, {
+          body: notification.body,
+          icon: '/assets/icons/task.png',
+          tag: `task-${taskTitle}-${dueDate.toISOString()}-${id}`
+        });
+      }
       this.scheduledTimers.delete(timerId);
     }, timeUntilNotification);
 

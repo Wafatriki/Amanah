@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { InvitationService } from '../../services/invitation.service';
 import { AuthService } from '../../services/auth.service';
+import { ActiveDependentService } from '../../services/active-dependent.service';
 import { DependentService } from '../../services/dependent.service';
 import { Invitation } from '../../models/invitation.model';
 import { NotificationService } from '../../services/notification.service';
@@ -30,6 +31,7 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly invitationService: InvitationService,
     private readonly authService: AuthService,
+    private readonly activeDependentService: ActiveDependentService,
     private readonly dependentService: DependentService,
     private readonly notificationService: NotificationService,
     private readonly cdr: ChangeDetectorRef
@@ -159,7 +161,16 @@ export class AcceptInvitationComponent implements OnInit, OnDestroy {
 
       console.log('Invitation accepted successfully');
       this.notificationService.notifySuccess('Invitación aceptada', 'Ya eres cuidador de este dependiente');
-      this.router.navigate(['/dashboard']);
+      
+      // Store the dependent ID so caregivers component can access it
+      if (this.invitation.dependentId) {
+        localStorage.setItem('activeDependentId', this.invitation.dependentId);
+        this.activeDependentService.setActiveDependentId(this.invitation.dependentId);
+        this.activeDependentService.setActiveDependentRole(this.invitation.role as 'primary_caregiver' | 'collaborative_caregiver' | 'invited');
+      }
+      
+      // Navigate to caregivers page
+      this.router.navigate(['/caregivers']);
     } catch (error) {
       console.error('Error accepting invitation:', error);
       this.error = 'Error aceptando invitación: ' + String(error);

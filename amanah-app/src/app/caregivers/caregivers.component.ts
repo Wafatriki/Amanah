@@ -57,10 +57,16 @@ export class CaregiversComponent implements OnInit, OnDestroy {
       });
 
     // Obtener el dependiente activo una vez
-    const activeDependentId = this.activeDependentService.getActiveDependentId();
+    let activeDependentId = this.activeDependentService.getActiveDependentId();
+    
+    // Also check localStorage (set by accept-invitation component)
+    if (!activeDependentId?.trim()) {
+      activeDependentId = localStorage.getItem('activeDependentId') || '';
+    }
 
     if (activeDependentId?.trim()) {
       this.dependentId = activeDependentId;
+      console.log('[CAREGIVERS] Loading caregivers for dependent:', activeDependentId);
       this.loadCaregivers();
     } else {
       this.loading = false;
@@ -72,6 +78,7 @@ export class CaregiversComponent implements OnInit, OnDestroy {
       .subscribe(dependentId => {
         if (dependentId?.trim()) {
           this.dependentId = dependentId;
+          console.log('[CAREGIVERS] Dependent changed, reloading caregivers:', dependentId);
           this.loadCaregivers();
         } else {
           this.loading = false;
@@ -86,14 +93,18 @@ export class CaregiversComponent implements OnInit, OnDestroy {
 
   async loadCaregivers(): Promise<void> {
     if (!this.dependentId) {
+      console.warn('[CAREGIVERS] No dependent ID available');
       return;
     }
 
     this.loading = true;
     this.error = '';
+    this.cdr.markForCheck();
 
     try {
+      console.log('[CAREGIVERS] Starting to load caregivers for dependent:', this.dependentId);
       this.caregivers = await this.dependentService.getCaregiversForDependent(this.dependentId);
+      console.log('[CAREGIVERS] Caregivers loaded successfully:', this.caregivers.length, 'caregivers');
 
       // Poner loading en false AHORA (no esperar al subscribe)
       this.loading = false;
@@ -104,16 +115,17 @@ export class CaregiversComponent implements OnInit, OnDestroy {
         next: (dependent) => {
           if (dependent) {
             this.dependentName = dependent.name;
+            console.log('[CAREGIVERS] Dependent name loaded:', dependent.name);
             this.cdr.markForCheck();
           }
         },
         error: (err) => {
-          console.error('Error loading dependent:', err);
+          console.error('[CAREGIVERS] Error loading dependent:', err);
           this.dependentName = 'Dependiente';
         }
       });
     } catch (error) {
-      console.error('Error in loadCaregivers:', error);
+      console.error('[CAREGIVERS] Error in loadCaregivers:', error);
       this.error = 'Error cargando cuidadores';
       this.loading = false;
       this.cdr.markForCheck();
