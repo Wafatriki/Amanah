@@ -82,30 +82,14 @@
       <full-calendar [options]="calendarOptions"></full-calendar>
     </div>
 
-    <!-- Leyenda de colores -->
-    <div class="calendar-legend">
-      <h3 class="legend-title">Leyenda</h3>
-      <div class="legend-items">
-        <div class="legend-item">
-          <span class="legend-color" style="background-color: #B8A5D6; border: 1px solid #a491c7;"></span>
-          <span class="legend-label">Tareas</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color" style="background-color: #ADD8E6; border: 1px solid #87CEEB;"></span>
-          <span class="legend-label">Citas</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-color" style="background-color: #FFFACD; border: 1px solid #DAA520;"></span>
-          <span class="legend-label">Eventos</span>
-        </div>
-      </div>
-    </div>
   }
 
   <!-- Event Details Modal -->
   <app-event-details-modal
     [event]="selectedEvent"
     [isOpen]="showEventModal"
+    [canEdit]="canCreateEvent()"
+    [canDelete]="canCreateEvent()"
     (onClose)="closeModal()"
     (onEdit)="editEvent($event)"
     (onDelete)="deleteEvent($event)"
@@ -166,8 +150,10 @@
         <!-- Modal Footer -->
         <div class="modal-footer">
           <button class="btn-secondary" (click)="closeModal()">Cerrar</button>
-          <button class="btn-edit" (click)="editTaskDirect()">Editar</button>
-          <button class="btn-delete" (click)="deleteTask(selectedTask.id!)">Eliminar</button>
+          @if (canCreateEvent()) {
+            <button class="btn-edit" (click)="editTaskDirect()">Editar</button>
+            <button class="btn-delete" (click)="deleteTask(selectedTask.id!)">Eliminar</button>
+          }
           <button
             class="btn-primary"
             (click)="markTaskComplete(selectedTask.id!)"

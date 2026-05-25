@@ -157,8 +157,16 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          // Reload appointments to move it to history
-          this.loadAppointments();
+          // Optimistically move completed appointment to history for immediate UI feedback
+          const idx = this.upcomingAppointments.findIndex(a => a.id === appointmentId);
+          if (idx !== -1) {
+            const appt = this.upcomingAppointments.splice(idx, 1)[0];
+            appt.status = 'completed';
+            this.pastAppointments.unshift(appt);
+          } else {
+            // as fallback, reload from server
+            this.loadAppointments();
+          }
           this.cdr.markForCheck();
         },
         error: (err: any) => {
@@ -170,7 +178,13 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   }
 
   async cancelAppointment(appointmentId: string): Promise<void> {
-    if (!this.activeDependentId || !this.selectedAppointment) return;
+    if (!this.activeDependentId) return;
+
+    // If called from list, ensure selectedAppointment is set for modal logic
+    if (!this.selectedAppointment) {
+      this.selectedAppointment = this.upcomingAppointments.find(a => a.id === appointmentId) ||
+                              this.pastAppointments.find(a => a.id === appointmentId) || null;
+    }
 
     const confirmed = await this.uiFeedbackService.confirm({
       title: 'Cancelar cita',
@@ -186,7 +200,16 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {
-            this.selectedAppointment!.status = 'cancelled';
+            // Optimistically update lists: remove from upcoming and add to past as cancelled
+            const idx = this.upcomingAppointments.findIndex(a => a.id === appointmentId);
+            if (idx !== -1) {
+              const appt = this.upcomingAppointments.splice(idx, 1)[0];
+              appt.status = 'cancelled';
+              this.pastAppointments.unshift(appt);
+            } else if (this.selectedAppointment) {
+              this.selectedAppointment.status = 'cancelled';
+            }
+
             this.closeModal();
             this.cdr.markForCheck();
             this.notificationService.notifySuccess('Cita cancelada', 'La cita se movió al historial');

@@ -251,4 +251,12 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
     target.onerror = null;
     target.src = this.emojiAvatarDataUrl;
   }
+
+  get pageTitle(): string {
+    if (this.isOwnProfile) {
+      return 'Mi Perfil';
+    }
+
+    return `Perfil de ${this.caregiver?.name || 'usuario'}`;
+  }
 }

@@ -13,6 +13,8 @@ import { CalendarEvent, EVENT_COLORS, EVENT_LABELS } from '../../models/calendar
 export class EventDetailsModalComponent {
   @Input() event: CalendarEvent | null = null;
   @Input() isOpen = false;
+  @Input() canEdit = true;
+  @Input() canDelete = true;
 
   @Output() onClose = new EventEmitter<void>();
   @Output() onEdit = new EventEmitter<string>();

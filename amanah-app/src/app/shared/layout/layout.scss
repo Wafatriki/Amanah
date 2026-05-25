@@ -17,8 +17,9 @@
 
 /* When bottom navigation is visible on small screens, add bottom padding
    to avoid content being obscured by the fixed nav (includes safe-area).
+   BUT NOT for full-height routes like chat which manage their own scrolling.
 */
-.main-content.has-bottom-nav {
+.main-content.has-bottom-nav:not(.full-height) {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
 }
 
@@ -56,6 +57,9 @@
 /* Full height routes like chat - no scroll on main-content */
 .main-content.full-height {
   overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Desktop */

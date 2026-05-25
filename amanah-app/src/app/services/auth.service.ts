@@ -107,26 +107,8 @@ export class AuthService {
   async login(email: string, password: string): Promise<any> {
     const credentials = await signInWithEmailAndPassword(this.firebaseService.auth, email, password);
 
-    // If the Auth user email is not verified, allow login for pre-existing accounts
-    // that already have a Firestore profile (created prior to adding strict verification).
-    // This avoids blocking older users who were already using the app.
+    // Enforce email verification: do not allow login if the Auth user's email is not verified.
     if (!credentials.user.emailVerified) {
-      try {
-        const userDocRef = doc(this.firebaseService.firestore, 'users', credentials.user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        // If user profile exists in Firestore, treat as an existing account and allow login.
-        if (userDocSnap.exists()) {
-          try {
-            await updateDoc(userDocRef, { emailVerified: true }).catch(() => {});
-          } catch {}
-          return credentials;
-        }
-      } catch (err) {
-        console.warn('Error checking Firestore profile for emailVerified fallback:', err);
-      }
-
-      // If no Firestore profile exists, require email verification as normal
       try {
         await signOut(this.firebaseService.auth);
       } catch (err) {

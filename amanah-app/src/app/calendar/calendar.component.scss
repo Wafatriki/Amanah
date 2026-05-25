@@ -211,6 +211,10 @@
   overflow-x: auto;
   margin-top: 12px;
 
+  .fc {
+    min-width: 620px;
+  }
+
   ::ng-deep {
     .fc {
       font-family: inherit;
@@ -343,6 +347,11 @@
       }
     }
   }
+}
+
+/* Hide medication calendar's own legend when embedded on the main calendar page to avoid duplicate legends */
+.medication-calendar-container .calendar-legend {
+  display: none;
 }
 
 /* Modal Animations */
@@ -879,10 +888,19 @@
   .calendar-wrapper {
     padding: 16px;
     border-radius: 14px;
+    overflow-x: auto;
 
     ::ng-deep {
+      .fc {
+        min-width: 620px;
+      }
+
       .fc-daygrid-day-frame {
         min-height: 100px;
+      }
+
+      .fc-daygrid-day-events {
+        overflow: hidden;
       }
 
       .fc-daygrid-day-number {
@@ -934,14 +952,20 @@
   .calendar-wrapper {
     padding: 12px;
     border-radius: 12px;
+    overflow-x: auto;
 
     ::ng-deep {
       .fc {
         font-size: 11px;
+        min-width: 620px;
       }
 
       .fc-daygrid-day-frame {
         min-height: 80px;
+      }
+
+      .fc-daygrid-day-events {
+        overflow: hidden;
       }
 
       .fc-button-sm {

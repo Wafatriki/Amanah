@@ -75,6 +75,10 @@ export class ChatComponent implements OnInit, OnDestroy {
       this.router.navigate(['/dashboard']);
       return;
     }
+
+    // Notify notification service that user is in chat
+    this.notificationService.setChatViewStatus(true);
+
     // Load current user with proper fullName from Firestore
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
@@ -108,6 +112,8 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Notify notification service that user is leaving chat
+    this.notificationService.setChatViewStatus(false);
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -182,14 +188,17 @@ export class ChatComponent implements OnInit, OnDestroy {
       .then((caregivers: any[]) => {
         console.log('Caregivers loaded:', caregivers);
         if (caregivers && Array.isArray(caregivers)) {
+          // Filter out invited users from participants list
+          const filteredCaregivers = caregivers.filter(caregiver => caregiver.role !== 'invited');
+          
           // Usar directamente los datos que vienen del servicio
-          this.caregivers = caregivers.map(caregiver => ({
+          this.caregivers = filteredCaregivers.map(caregiver => ({
             id: caregiver.userId,
             name: caregiver.name,
             image: caregiver.image || undefined
           }));
 
-          console.log('Caregivers mapped:', this.caregivers);
+          console.log('Caregivers mapped (filtered):', this.caregivers);
 
           // Guardar en el mapa de nombres para los mensajes
           caregivers.forEach(caregiver => {

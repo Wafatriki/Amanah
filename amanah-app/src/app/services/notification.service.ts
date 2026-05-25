@@ -35,11 +35,27 @@ export class NotificationService {
   private readonly scheduledTimers: Map<string, number> = new Map();
   // Dedupe keys recientementes enviadas (para evitar envíos repetidos)
   private readonly recentlySentDedupeKeys: Set<string> = new Set();
+  // Track if user is currently viewing the chat
+  private isUserInChat = false;
 
   constructor() {
     this.initializeNotifications();
     this.loadFromLocalStorage();
     this.loadSentDedupeKeys();
+  }
+
+  /**
+   * Set if user is currently viewing the chat
+   */
+  setChatViewStatus(isInChat: boolean): void {
+    this.isUserInChat = isInChat;
+  }
+
+  /**
+   * Check if user is currently viewing the chat
+   */
+  getIsUserInChat(): boolean {
+    return this.isUserInChat;
   }
 
   /**
@@ -294,6 +310,12 @@ export class NotificationService {
   notifyNewMessage(senderName: string, message: string, senderUserId?: string): void {
     // No enviar notificación al usuario que envió el mensaje
     if (senderUserId && senderUserId === this.getCurrentUserId()) {
+      return;
+    }
+
+    // No enviar notificación si el usuario está viendo el chat
+    if (this.isUserInChat) {
+      console.log('[notifyNewMessage] Usuario está en el chat, no enviar notificación');
       return;
     }
 

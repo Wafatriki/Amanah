@@ -6,15 +6,21 @@ export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  // TEMPORALMENTE DESACTIVADO PARA DESARROLLO - QUITAR EN PRODUCCIÓN
+  const currentUser = authService.getCurrentUser();
+
+  // If there's no authenticated user, redirect to login
+  if (!currentUser) {
+    router.navigate(['/login']);
+    return false;
+  }
+
+  // Require email verification before allowing access
+  if (!currentUser.emailVerified) {
+    // Sign out to ensure app state is clean and send user to verification notice
+    authService.logout().catch(() => {});
+    router.navigate(['/verify-email']);
+    return false;
+  }
+
   return true;
-
-  // const currentUser = authService.getCurrentUser();
-
-  // if (currentUser) {
-  //   return true;
-  // } else {
-  //   router.navigate(['/login']);
-  //   return false;
-  // }
 };

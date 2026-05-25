@@ -11,6 +11,7 @@ import { Appointment } from '../../models/appointment.model';
 import { DependentService } from '../../services/dependent.service';
 import { ActiveDependentService } from '../../services/active-dependent.service';
 import { AuthService } from '../../services/auth.service';
+import { AuthorizationService } from '../../services/authorization';
 import { MedicationService } from '../../services/medication.service';
 import { PermissionService } from '../../services/permission.service';
 import { TaskService } from '../../services/task.service';
@@ -40,6 +41,9 @@ export class DependentDetailComponent implements OnInit, OnDestroy {
   showOthersTab = false;
   otherDependents: Dependent[] = [];
   dependentId: string | null = null;
+  canEditDependentValue = false;
+  canDeleteDependentValue = false;
+  currentUserRole: 'primary_caregiver' | 'collaborative_caregiver' | 'invited' | null = null;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -50,6 +54,7 @@ export class DependentDetailComponent implements OnInit, OnDestroy {
     private readonly dependentService: DependentService,
     private readonly activeDependentService: ActiveDependentService,
     private readonly authService: AuthService,
+    private readonly authorizationService: AuthorizationService,
     private readonly medicationService: MedicationService,
     private readonly permissionService: PermissionService,
     private readonly taskService: TaskService,
@@ -59,6 +64,14 @@ export class DependentDetailComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Subscribe to role changes and update permissions
+    this.activeDependentService
+      .getActiveDependentRole$()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.updatePermissions();
+      });
+
     this.route.params.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       const id = params['id'];
       console.log('Route params received:', params);
@@ -70,6 +83,26 @@ export class DependentDetailComponent implements OnInit, OnDestroy {
         this.router.navigate(['/dependent-selector']);
       }
     });
+  }
+
+  private updatePermissions(): void {
+    const globalRole = this.authorizationService.getGlobalRole();
+    
+    // Si es admin o primary_caregiver global, puede hacer todo
+    const isGlobalAdmin = globalRole === 'admin' || globalRole === 'primary_caregiver';
+    
+    // Si no es admin global, revisar el rol del dependiente
+    if (isGlobalAdmin) {
+      this.canEditDependentValue = true;
+      this.canDeleteDependentValue = true;
+    } else {
+      // Solo permite si es primary_caregiver del dependiente
+      this.canEditDependentValue = this.currentUserRole === 'primary_caregiver';
+      this.canDeleteDependentValue = this.currentUserRole === 'primary_caregiver';
+    }
+    
+    console.log('Permissions updated - Edit:', this.canEditDependentValue, 'Delete:', this.canDeleteDependentValue, 'Role:', this.currentUserRole);
+    this.cdr.markForCheck();
   }
 
   async verifyOwnershipAndLoad(id: string): Promise<void> {
@@ -102,6 +135,29 @@ export class DependentDetailComponent implements OnInit, OnDestroy {
           this.router.navigate(['/dependent-selector']);
         }, 1000);
         return;
+      }
+
+      // Set active dependent id and role so PermissionService can evaluate correctly
+      try {
+        this.activeDependentService.setActiveDependentId(id);
+
+        if (isOwner) {
+          this.currentUserRole = 'primary_caregiver';
+          this.activeDependentService.setActiveDependentRole('primary_caregiver');
+        } else {
+          // Fetch caregiver entry to determine specific role (collaborative or invited)
+          const caregivers = await this.dependentService.getCaregiversForDependent(id);
+          const myCaregiver = caregivers.find(c => c.userId === currentUser?.uid);
+          if (myCaregiver && myCaregiver.role) {
+            const role = myCaregiver.role as 'primary_caregiver' | 'collaborative_caregiver' | 'invited';
+            this.currentUserRole = role;
+            this.activeDependentService.setActiveDependentRole(role);
+          }
+        }
+        // Update permissions immediately after setting role
+        this.updatePermissions();
+      } catch (err) {
+        console.warn('Could not set active dependent role:', err);
       }
 
       this.loadDependent(id);
@@ -215,11 +271,11 @@ export class DependentDetailComponent implements OnInit, OnDestroy {
   }
 
   canEditDependent(): boolean {
-    return this.permissionService.canEditDependent();
+    return this.canEditDependentValue;
   }
 
   canDeleteDependent(): boolean {
-    return this.permissionService.canDeleteDependent();
+    return this.canDeleteDependentValue;
   }
 
   editDependent(): void {

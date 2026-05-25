@@ -5,6 +5,7 @@ import { map, catchError } from 'rxjs/operators';
 import { FirebaseService } from './firebase.service';
 import { PermissionService } from './permission.service';
 import { ClinicalDocument, DocumentAccessLog, MAX_FILE_SIZE } from '../models/clinical-document.model';
+import { environment } from '../../environments/environment';
 import {
   collection,
   doc,
@@ -25,7 +26,7 @@ import {
 })
 export class ClinicalDocumentService {
   private readonly MAX_FILE_SIZE = MAX_FILE_SIZE;
-  private readonly BACKEND_URL = 'http://localhost:3000'; // Cambiar en producción
+  private readonly BACKEND_URL = environment.backendUrl;
   private readonly permissionService = inject(PermissionService);
 
   constructor(

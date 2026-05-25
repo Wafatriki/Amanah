@@ -16,10 +16,10 @@ $error-color: #e74c3c;
 }
 
 .chat-wrapper {
-  display: flex;
-  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   width: 100%;
   background-color: #ffffff;
@@ -144,13 +144,13 @@ $error-color: #e74c3c;
 
 // ===== MESSAGES LIST =====
 .messages-list {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 16px 20px;
+  padding: 16px 20px 0 20px;
   box-sizing: border-box;
   background-color: #ffffff;
 
@@ -334,12 +334,13 @@ $error-color: #e74c3c;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px 20px;
+  padding: 12px 20px 12px 20px;
   background-color: #ffffff;
   border-top: 1px solid $gray-border;
   box-sizing: border-box;
   flex-shrink: 0;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+  z-index: 15;
 
   .file-preview {
     position: relative;
@@ -571,6 +572,20 @@ $error-color: #e74c3c;
   }
 }
 
+@media (max-width: 768px) {
+  .profile-section {
+    padding-bottom: 10px;
+  }
+
+  .messages-list {
+    padding-bottom: 12px;
+  }
+
+  .chat-input-section {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 // ===== AI CHAT STYLES =====
 .app-header {
   display: flex;
@@ -606,7 +621,7 @@ $error-color: #e74c3c;
 .ai-section {
   background: linear-gradient(135deg, rgba(184, 165, 214, 0.1) 0%, rgba(168, 145, 199, 0.05) 100%) !important;
   gap: 10px;
-  
+
   h2 {
     display: flex;
     align-items: center;
@@ -671,17 +686,17 @@ $error-color: #e74c3c;
   flex-direction: column;
   gap: 12px;
   padding: 16px 20px;
-  
+
   .empty-chat {
     text-align: center;
     padding: 40px 20px;
-    
+
     p {
       margin: 0 0 16px 0;
       color: $text-gray;
       font-size: 15px;
     }
-    
+
     .ai-help-list {
       list-style: none;
       padding: 0;
@@ -689,7 +704,7 @@ $error-color: #e74c3c;
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 8px;
-      
+
       li {
         padding: 8px;
         background-color: rgba(184, 165, 214, 0.1);
@@ -845,8 +860,12 @@ $error-color: #e74c3c;
       }
 
       &:disabled {
-        opacity: 0.6;
+        opacity: 0.5;
         cursor: not-allowed;
+      }
+
+      &:active:not(:disabled) {
+        transform: none;
       }
     }
   }
@@ -877,6 +896,8 @@ $error-color: #e74c3c;
       background-color: #ffffff;
       box-shadow: 0 0 0 3px rgba(184, 165, 214, 0.1);
     }
+
+
 
     &::placeholder {
       color: $text-gray;
@@ -929,9 +950,11 @@ $error-color: #e74c3c;
   padding-left: 2px;
 }
 
+/* Chat layout optimizations - flexbox handles positioning */
+
 @media (max-width: 768px) {
   .chat-wrapper {
-    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
   }
 
   .ai-messages {
@@ -957,7 +980,7 @@ $error-color: #e74c3c;
   }
 
   .chat-input-section {
-    padding: 10px 12px calc(18px + env(safe-area-inset-bottom));
+    padding: 10px 12px;
   }
 
   .ai-section {

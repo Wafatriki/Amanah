@@ -123,10 +123,10 @@ export class AppointmentService {
               ...this.convertFirestoreToAppointment(data)
             } as Appointment;
 
-            // Filter cliente-side: sólo citas pasadas
+            // History includes completed/cancelled/overdue appointments and any past scheduled appointment
             const appointmentDate = new Date(appointment.date);
             appointmentDate.setHours(0, 0, 0, 0);
-            if (appointmentDate < today) {
+            if (appointment.status === 'completed' || appointment.status === 'cancelled' || appointment.status === 'overdue' || appointmentDate < today) {
               appointments.push(appointment);
             }
           });
@@ -259,10 +259,22 @@ export class AppointmentService {
             const appointmentData = appointmentDoc.data();
             const doctorName = appointmentData['doctor'] || 'Cita médica';
             const appointmentTime = appointmentData['time'] || '';
-            const appointmentDateStr = appointmentData['date'] instanceof Date
-              ? appointmentData['date'].toLocaleDateString('es-ES')
-              : new Date(appointmentData['date']).toLocaleDateString('es-ES');
-
+            
+            // Convertir Firestore Timestamp a Date correctamente
+            let appointmentDate: Date;
+            const dateData = appointmentData['date'];
+            if (dateData && typeof dateData.toDate === 'function') {
+              // Es un Firestore Timestamp
+              appointmentDate = dateData.toDate();
+            } else if (dateData instanceof Date) {
+              appointmentDate = dateData;
+            } else if (typeof dateData === 'string') {
+              appointmentDate = new Date(dateData);
+            } else {
+              appointmentDate = new Date();
+            }
+            
+            const appointmentDateStr = appointmentDate.toLocaleDateString('es-ES');
             this.notificationService.notifyAppointmentCompleted(doctorName, appointmentDateStr, appointmentTime);
           }
         }

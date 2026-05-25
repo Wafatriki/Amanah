@@ -7,6 +7,7 @@ import { getAuth } from 'firebase/auth';
 import {
   collection,
   addDoc,
+  setDoc,
   deleteDoc,
   doc,
   getDoc,
@@ -63,6 +64,11 @@ export class TaskService {
 
     try {
       // Preparar datos ANTES de crear la referencia a la colección
+      // ✅ FIX: Si no hay assignedTo, asignar al usuario que crea la tarea
+      const assignedTo = task.assignedTo && Array.isArray(task.assignedTo) && task.assignedTo.length > 0 
+        ? task.assignedTo 
+        : [userId]; // Asignar al creador si está vacío
+      
       const taskData: Record<string, any> = {
         title: task.title,
         description: task.description || '',
@@ -71,7 +77,7 @@ export class TaskService {
         priority: task.priority,
         status: task.status,
         dependentId: task.dependentId,
-        assignedTo: task.assignedTo,
+        assignedTo: assignedTo,
         notes: task.notes || '',
         createdBy: userId,
         createdAt: Timestamp.now(),
@@ -112,6 +118,7 @@ export class TaskService {
       );
 
       const docRef = await addDoc(tasksCollection, taskData);
+      await setDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, docRef.id), taskData);
       console.log('[TASK-SERVICE] ✅ Task created successfully with ID:', docRef.id);
       console.log('[TASK-SERVICE] ✅ Full path:', `dependents/${task.dependentId}/tasks/${docRef.id}`);
       console.log('[TASK-SERVICE] Collection reference:', tasksCollection);
@@ -119,6 +126,7 @@ export class TaskService {
 
       // NOTA: No enviamos notificación aquí. Las notificaciones se envían solo en los recordatorios programados (X minutos antes)
       // basado en las preferencias del usuario (minutesBefore en las opciones de reminder)
+      this.notificationService.notifyNewTask(task.title, new Date(task.dueDate).toLocaleDateString('es-ES'), userId);
 
       return docRef.id;
     } catch (error: any) {
@@ -175,6 +183,9 @@ export class TaskService {
       });
 
       await updateDoc(taskRef, updateData);
+      if (dependentId) {
+        await updateDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, id), updateData).catch(() => {});
+      }
 
       // Recuperar la tarea actualizada para enviar notificación con datos correctos
       try {
@@ -212,6 +223,9 @@ export class TaskService {
         taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, id);
       }
       await deleteDoc(taskRef);
+      if (dependentId) {
+        await deleteDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, id)).catch(() => {});
+      }
     } catch (error) {
       console.error('Error deleting task:', error);
       throw error;
@@ -351,6 +365,14 @@ export class TaskService {
           completedBy: userId,
           updatedAt: Timestamp.now(),
         });
+        if (dependentId) {
+          await updateDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, taskId), {
+            status: 'completed',
+            completedAt: Timestamp.fromDate(timestamp || new Date()),
+            completedBy: userId,
+            updatedAt: Timestamp.now(),
+          }).catch(() => {});
+        }
 
         // Enviar notificación de tarea completada
         const dueDate = task.dueDate instanceof Date
@@ -396,6 +418,9 @@ export class TaskService {
       }
 
       await updateDoc(taskRef, updateData);
+      if (dependentId) {
+        await updateDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, taskId), updateData).catch(() => {});
+      }
     } catch (error) {
       console.error('Error toggling task status:', error);
       throw error;
@@ -436,6 +461,9 @@ export class TaskService {
       }
 
       await updateDoc(taskRef, updateData);
+      if (dependentId) {
+        await updateDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, taskId), updateData).catch(() => {});
+      }
     } catch (error) {
       console.error('Error setting task status:', error);
       throw error;
@@ -454,6 +482,12 @@ export class TaskService {
         assignedTo: userIds,
         updatedAt: Timestamp.now(),
       });
+      if (dependentId) {
+        await updateDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, taskId), {
+          assignedTo: userIds,
+          updatedAt: Timestamp.now(),
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error('Error assigning task:', error);
       throw error;
@@ -489,6 +523,13 @@ export class TaskService {
         lastAssignedTo: nextCaregiverId,
         updatedAt: Timestamp.now(),
       });
+      if (dependentId) {
+        await updateDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, taskId), {
+          assignedTo: [nextCaregiverId],
+          lastAssignedTo: nextCaregiverId,
+          updatedAt: Timestamp.now(),
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error('Error rotating task assignment:', error);
       throw error;
