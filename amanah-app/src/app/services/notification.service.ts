@@ -717,10 +717,10 @@ export class NotificationService {
   clearAllNotifications(): void {
     // Limpiar notificaciones del historial
     this.clearNotifications();
-    
+
     // Cancelar todos los timers programados
     this.cancelAllScheduledNotifications();
-    
+
     // Limpiar los dedupe keys enviados
     this.recentlySentDedupeKeys.clear();
     try {
@@ -728,7 +728,7 @@ export class NotificationService {
     } catch (error) {
       console.error('Error borrando dedupeKeys:', error);
     }
-    
+
     console.log('[NOTIF-CLEANUP] ✅ Todas las notificaciones, timers y dedupe keys limpiados');
   }
 

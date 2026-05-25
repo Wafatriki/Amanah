@@ -190,7 +190,7 @@ export class ChatComponent implements OnInit, OnDestroy {
         if (caregivers && Array.isArray(caregivers)) {
           // Filter out invited users from participants list
           const filteredCaregivers = caregivers.filter(caregiver => caregiver.role !== 'invited');
-          
+
           // Usar directamente los datos que vienen del servicio
           this.caregivers = filteredCaregivers.map(caregiver => ({
             id: caregiver.userId,

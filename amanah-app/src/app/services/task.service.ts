@@ -50,7 +50,7 @@ export class TaskService {
 
   async createTask(task: Task, userId: string): Promise<string> {
     console.log('[TASK-SERVICE] createTask called with:', { task, userId });
-    
+
     // Validar permisos: Solo cuidadores pueden crear tareas
     if (!this.permissionService.canCreateTask()) {
       console.error('[TASK-SERVICE] Permission denied: canCreateTask() returned false');
@@ -65,10 +65,10 @@ export class TaskService {
     try {
       // Preparar datos ANTES de crear la referencia a la colección
       // ✅ FIX: Si no hay assignedTo, asignar al usuario que crea la tarea
-      const assignedTo = task.assignedTo && Array.isArray(task.assignedTo) && task.assignedTo.length > 0 
-        ? task.assignedTo 
+      const assignedTo = task.assignedTo && Array.isArray(task.assignedTo) && task.assignedTo.length > 0
+        ? task.assignedTo
         : [userId]; // Asignar al creador si está vacío
-      
+
       const taskData: Record<string, any> = {
         title: task.title,
         description: task.description || '',

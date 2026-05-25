@@ -259,7 +259,7 @@ export class AppointmentService {
             const appointmentData = appointmentDoc.data();
             const doctorName = appointmentData['doctor'] || 'Cita médica';
             const appointmentTime = appointmentData['time'] || '';
-            
+
             // Convertir Firestore Timestamp a Date correctamente
             let appointmentDate: Date;
             const dateData = appointmentData['date'];
@@ -273,7 +273,7 @@ export class AppointmentService {
             } else {
               appointmentDate = new Date();
             }
-            
+
             const appointmentDateStr = appointmentDate.toLocaleDateString('es-ES');
             this.notificationService.notifyAppointmentCompleted(doctorName, appointmentDateStr, appointmentTime);
           }

@@ -87,10 +87,10 @@ export class DependentDetailComponent implements OnInit, OnDestroy {
 
   private updatePermissions(): void {
     const globalRole = this.authorizationService.getGlobalRole();
-    
+
     // Si es admin o primary_caregiver global, puede hacer todo
     const isGlobalAdmin = globalRole === 'admin' || globalRole === 'primary_caregiver';
-    
+
     // Si no es admin global, revisar el rol del dependiente
     if (isGlobalAdmin) {
       this.canEditDependentValue = true;
@@ -100,7 +100,7 @@ export class DependentDetailComponent implements OnInit, OnDestroy {
       this.canEditDependentValue = this.currentUserRole === 'primary_caregiver';
       this.canDeleteDependentValue = this.currentUserRole === 'primary_caregiver';
     }
-    
+
     console.log('Permissions updated - Edit:', this.canEditDependentValue, 'Delete:', this.canDeleteDependentValue, 'Role:', this.currentUserRole);
     this.cdr.markForCheck();
   }
