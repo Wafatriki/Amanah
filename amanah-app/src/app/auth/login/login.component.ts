@@ -16,6 +16,9 @@ export class LoginComponent {
   isLoading = false;
   errorMessage: string | null = null;
   isRegisterMode = false;
+  unverifiedUser: any = null;
+  isResendingEmail = false;
+  resendMessage: string | null = null;
 
   constructor(
     private readonly fb: FormBuilder,
@@ -90,7 +93,8 @@ export class LoginComponent {
       } else if (errorCode === 'auth/too-many-requests') {
         this.errorMessage = 'Demasiados intentos. Intenta más tarde';
       } else if (errorCode === 'auth/email-not-verified') {
-        this.errorMessage = 'Tu correo no está verificado. Revisa tu bandeja de entrada y confirma el enlace.';
+        this.errorMessage = error.message;
+        this.unverifiedUser = error.user; // Guardar el usuario para poder reenviar el email
       } else if (error.message) {
         this.errorMessage = error.message;
       } else {
@@ -129,6 +133,24 @@ export class LoginComponent {
 
   onForgotPasswordClick(): void {
     this.router.navigate(['/forgot-password']);
+  }
+
+  async onResendEmail(): Promise<void> {
+    if (!this.unverifiedUser) return;
+
+    this.isResendingEmail = true;
+    this.resendMessage = null;
+
+    try {
+      await this.authService.resendEmailVerification(this.unverifiedUser);
+      this.resendMessage = '✓ Email de verificación reenviado. Revisa tu bandeja de entrada.';
+      this.cdr.detectChanges();
+    } catch (error: any) {
+      this.resendMessage = error.message || 'Error al reenviar el email';
+      this.cdr.detectChanges();
+    } finally {
+      this.isResendingEmail = false;
+    }
   }
 }
 

@@ -39,6 +39,11 @@
         {{ errorMessage }}
       </div>
 
+      <!-- Resend Email Message -->
+      <div *ngIf="resendMessage" class="success-box">
+        {{ resendMessage }}
+      </div>
+
       <!-- Button -->
       <button
         type="submit"
@@ -46,6 +51,17 @@
         class="submit-btn"
       >
         {{ isLoading ? 'Cargando...' : 'Iniciar sesión' }}
+      </button>
+
+      <!-- Resend Email Button -->
+      <button
+        *ngIf="unverifiedUser && errorMessage?.includes('verificado')"
+        type="button"
+        [disabled]="isResendingEmail"
+        (click)="onResendEmail()"
+        class="resend-email-btn"
+      >
+        {{ isResendingEmail ? 'Reenviando...' : 'Reenviar email de verificación' }}
       </button>
     </form>
 

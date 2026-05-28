@@ -109,14 +109,9 @@ export class AuthService {
 
     // Enforce email verification: do not allow login if the Auth user's email is not verified.
     if (!credentials.user.emailVerified) {
-      try {
-        await signOut(this.firebaseService.auth);
-      } catch (err) {
-        console.warn('Error signing out unverified user:', err);
-      }
-
-      const error: any = new Error('Por favor verifica tu correo antes de iniciar sesión.');
+      const error: any = new Error('Tu correo no está verificado. Revisa tu bandeja de entrada y confirma el enlace.');
       error.code = 'auth/email-not-verified';
+      error.user = credentials.user; // Pasar el usuario para poder reenviar el email
       throw error;
     }
 
@@ -129,6 +124,15 @@ export class AuthService {
     }
 
     return credentials;
+  }
+
+  async resendEmailVerification(user: User): Promise<void> {
+    try {
+      await sendEmailVerification(user);
+    } catch (err) {
+      console.error('Error reenviando email de verificación:', err);
+      throw new Error('No se pudo reenviar el email de verificación. Intenta de nuevo más tarde.');
+    }
   }
 
   logout(): Promise<void> {

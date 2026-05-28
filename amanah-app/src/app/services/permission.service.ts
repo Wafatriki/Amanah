@@ -232,12 +232,15 @@ export class PermissionService {
 
   /**
    * Verificar si el usuario actual puede eliminar documentos
+   * Solo Primary Caregiver y Admin
+   * Los cuidadores colaboradores e invitados NO pueden eliminar documentos
    */
   canDeleteDocument(): boolean {
     const globalRole = this.authorizationService.getGlobalRole();
-    if (this.isGlobalManager(globalRole)) return true;
+    if (globalRole === UserRole.ADMIN) return true;
 
-    return this.isDependentWriter(this.getActiveDependentRole());
+    const dependentRole = this.getActiveDependentRole();
+    return dependentRole === 'primary_caregiver';
   }
 
   /**
