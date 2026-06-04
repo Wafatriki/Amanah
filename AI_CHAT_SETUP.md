@@ -1,14 +1,13 @@
-# 🤖 Setup: Chat con IA (Groq) en Amanah
+# Setup: Chat con IA (Groq) en Amanah
 
 ## Resumen de cambios
 
 Se ha añadido un **Chat de IA** a la aplicación Amanah que permite a los cuidadores hacer preguntas sobre:
-- ✅ Tareas del día
-- ✅ Medicamentos activos
-- ✅ Próximas citas médicas
-- ✅ Recordatorios generales
+-  Tareas del día
+-  Medicamentos activos
+-  Próximas citas médicas
 
-## 🔧 Instalación y Configuración
+## Instalación y Configuración
 
 ### Paso 1: Instalar dependencias en Cloud Functions
 
@@ -57,7 +56,7 @@ cd functions
 npm run deploy
 ```
 
-## 📋 Flujo de Datos
+## Flujo de Datos
 
 ```
 Usuario pregunta en el chat
@@ -82,9 +81,9 @@ Firebase Cloud Function: chatAI()
 Mostrar respuesta en el UI
 ```
 
-## 🔒 Seguridad y Privacidad
+## Seguridad y Privacidad
 
-### ✅ Medidas implementadas:
+### Medidas implementadas:
 
 1. **Autenticación Firebase obligatoria**
    - Solo usuarios logged-in pueden usar el chat de IA
@@ -112,12 +111,9 @@ Mostrar respuesta en el UI
    - Preguntas guardadas como preview (no completas)
    - Se puede implementar "derecho al olvido" borrando logs
 
-### Cumple con:
-- ✅ RGPD (Regulación General de Protección de Datos)
-- ✅ LOPD (Ley de Protección de Datos España)
-- ✅ Confidencialidad médica
 
-## 🧪 Testing
+
+## Testing
 
 ### Test local (emulador):
 
@@ -155,7 +151,7 @@ Si no puedes iniciar sesión con una cuenta que ves en Firebase Console, asegúr
 - "¿Cuántos medicamentos activos hay?"
 - "¿Cuál es la próxima cita?"
 
-## 📝 Archivos Modificados
+## Archivos Modificados
 
 ### Backend (Cloud Functions)
 - `functions/package.json` - Agregada dependencia `@google-ai/generative-ai`
@@ -171,7 +167,7 @@ Si no puedes iniciar sesión con una cuenta que ves en Firebase Console, asegúr
 ### Seguridad
 - `firestore.rules` - Rules actualizadas con acceso controlado a `ai_chat_logs`
 
-## ⚡ Costos
+## Costos
 
 **Groq API:**
 - El coste depende del modelo y del plan configurado
@@ -182,36 +178,6 @@ Si no puedes iniciar sesión con una cuenta que ves en Firebase Console, asegúr
 - 2 millones de llamadas/mes gratis
 - Después: $0.40 por millón de llamadas
 
-**Estimación para TFG:**
-- ✅ Totalmente GRATIS
-
-## 🚀 Próximas mejoras (opcional)
-
-1. Guardar historial del chat con IA
-2. Usar embeddings para búsquedas más inteligentes
-3. Integrar con chat normal (guardar respuestas en Firestore)
-4. Análisis de sentimiento para detectar situaciones críticas
-5. Alerts automáticos si detecta medicamentos olvidados
-
-## 📞 Troubleshooting
-
-### Error: "GROQ_API_KEY not configured"
-- Verificar que la variable de entorno está configurada
-- Reiniciar emulador si estás en local
-- Redeploy si estás en producción
-
-### Error: "Usuario no autenticado"
-- Asegúrate de estar logged-in en la app
-- Verificar que Firebase Auth está funcionando
-
-### Error: "Dependiente no encontrado"
-- Verificar que el `dependentId` es correcto
-- Asegúrate que el usuario es cuidador del dependiente
-
-### Respuesta lenta o timeout
-- Normal si es la primera llamada (cold start)
-- Gemini tardará 1-3 segundos en responder
-- Aumentar timeout si necesario
 
 ## 📚 Referencias
 
