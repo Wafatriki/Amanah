@@ -390,7 +390,7 @@ export class DependentService {
       if (dependentSnap.exists()) {
         const dependentData = dependentSnap.data() as any;
         console.log('[DEPENDENT-SERVICE] Dependent found:', dependentData.name);
-        
+
         // Determinar quién es el propietario (puede estar en ownerId, userId, createdBy o primaryCaregiverId)
         const ownerUserId = dependentData.ownerId || dependentData.userId || dependentData.createdBy || dependentData.primaryCaregiverId;
 
@@ -479,12 +479,17 @@ export class DependentService {
         }
       }
 
-      console.log('[DEPENDENT-SERVICE] ✅ Final caregivers list:');
+      console.log('[DEPENDENT-SERVICE] Final caregivers list:');
       caregivers.forEach((c, idx) => {
         console.log(`[DEPENDENT-SERVICE]   [${idx}] ${c.name} (${c.role})`);
       });
+
+      // Filtrar cuidadores 'invited' (solo lectura, no participan en chat)
+      const filteredCaregivers = caregivers.filter(c => c.role !== 'invited');
+      console.log(`[DEPENDENT-SERVICE] Filtered caregivers (excluding 'invited'): ${filteredCaregivers.length}/${caregivers.length}`);
+
       console.log('[DEPENDENT-SERVICE] ========== GET CAREGIVERS END (SUCCESS) ==========');
-      return caregivers;
+      return filteredCaregivers;
     } catch (error) {
       console.error('[DEPENDENT-SERVICE] ❌ Error fetching caregivers for dependent:', error);
       console.error('[DEPENDENT-SERVICE] ========== GET CAREGIVERS END (ERROR) ==========');

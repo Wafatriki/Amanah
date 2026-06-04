@@ -137,7 +137,7 @@ export class ChatService {
         message
       ).then(() => {
         // Enviar notificación de nuevo mensaje (solo a otros cuidadores, no al remitente)
-        this.notificationService.notifyNewMessage(userName, text.substring(0, 100), userId);
+        this.notificationService.notifyNewMessage(userName, text.substring(0, 100), userId, dependentId);
         // Actualizar último mensaje en la sala
         return this.updateLastMessage(dependentId, text);
       })

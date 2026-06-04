@@ -17,6 +17,7 @@ export class BottomNavComponent implements OnInit, OnDestroy {
     { icon: '/assets/icons/inicio.png', label: 'Inicio', path: '/dashboard', requiresWrite: false },
     { icon: '/assets/medication-icons/pastillas.png', label: 'Medicación', path: '/medications', requiresWrite: false },
     { icon: '/assets/icons/calendario.png', label: 'Citas', path: '/appointments', requiresWrite: false },
+    { icon: '/assets/icons/mensaje.png', label: 'Chat', path: '/chat', requiresWrite: true },
     { icon: '/assets/icons/usuario.png', label: 'Perfil', path: '/profile', requiresWrite: false },
   ];
 

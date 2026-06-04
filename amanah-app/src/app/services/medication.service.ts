@@ -216,8 +216,7 @@ export class MedicationService {
         // Enviar notificación de medicación tomada
         const medicationName = medicationData['name'] || 'Medicación';
         const dose = medicationData['dose'] || '';
-        const scheduleTime = schedules[scheduleIndex]?.time || '';
-        this.notificationService.notifyMedicationTaken(medicationName, dose, scheduleTime, actualTime);
+        this.notificationService.notifyMedicationTaken(medicationName, dose, actualTime);
       })()
     );
   }

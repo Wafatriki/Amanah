@@ -107,15 +107,22 @@ export class AuthService {
   async login(email: string, password: string): Promise<any> {
     const credentials = await signInWithEmailAndPassword(this.firebaseService.auth, email, password);
 
-    // Enforce email verification: do not allow login if the Auth user's email is not verified.
-    if (!credentials.user.emailVerified) {
-      const error: any = new Error('Tu correo no está verificado. Revisa tu bandeja de entrada y confirma el enlace.');
+    // Allow legacy accounts that existed before email verification was added.
+    const isVerified = await this.isAccountEmailVerified(credentials.user.uid, credentials.user.emailVerified);
+
+    if (!isVerified) {
+      try {
+        await signOut(this.firebaseService.auth);
+      } catch (err) {
+        console.warn('Error signing out unverified user:', err);
+      }
+
+      const error: any = new Error('Por favor verifica tu correo antes de iniciar sesión.');
       error.code = 'auth/email-not-verified';
-      error.user = credentials.user; // Pasar el usuario para poder reenviar el email
       throw error;
     }
 
-    // Mark user document as verified if needed
+    // Keep Firestore in sync for newly verified or legacy accounts.
     try {
       const userDocRef = doc(this.firebaseService.firestore, 'users', credentials.user.uid);
       await updateDoc(userDocRef, { emailVerified: true }).catch(() => { /* ignore if missing */ });
@@ -126,21 +133,34 @@ export class AuthService {
     return credentials;
   }
 
-  async resendEmailVerification(user: User): Promise<void> {
-    try {
-      await sendEmailVerification(user);
-    } catch (err) {
-      console.error('Error reenviando email de verificación:', err);
-      throw new Error('No se pudo reenviar el email de verificación. Intenta de nuevo más tarde.');
-    }
-  }
-
   logout(): Promise<void> {
     return signOut(this.firebaseService.auth);
   }
 
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
+  }
+
+  /**
+   * Reenviar email de verificación al usuario actual o al usuario pasado como argumento
+   */
+  async resendEmailVerification(user?: User): Promise<void> {
+    const target = user || this.getCurrentUser();
+    if (!target) {
+      throw new Error('No hay usuario autenticado para reenviar el email');
+    }
+
+    try {
+      await sendEmailVerification(target);
+      console.log('Verification email resent to', target.uid);
+    } catch (err) {
+      console.error('Error resending verification email:', err);
+      throw err;
+    }
+  }
+
+  async isAccountEmailVerifiedForGuard(user: User): Promise<boolean> {
+    return this.isAccountEmailVerified(user.uid, user.emailVerified);
   }
 
   async getCurrentUserFullName(): Promise<string> {
@@ -168,6 +188,25 @@ export class AuthService {
 
   sendPasswordReset(email: string): Promise<void> {
     return sendPasswordResetEmail(this.firebaseService.auth, email);
+  }
+
+  private async isAccountEmailVerified(uid: string, authEmailVerified: boolean): Promise<boolean> {
+    if (authEmailVerified) {
+      return true;
+    }
+
+    try {
+      const userDoc = await getDoc(doc(this.firebaseService.firestore, 'users', uid));
+      if (!userDoc.exists()) {
+        return false;
+      }
+
+      const emailVerified = userDoc.data()?.['emailVerified'];
+      return emailVerified !== false;
+    } catch (err) {
+      console.warn('No se pudo comprobar la verificación de email en Firestore:', err);
+      return false;
+    }
   }
 
   async resendVerificationEmail(): Promise<void> {

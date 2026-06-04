@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { DependentService } from '../../services/dependent.service';
@@ -7,6 +7,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Dependent } from '../../models/dependent.model';
 import { MedicationService } from '../../services/medication.service';
 import { Medication } from '../../models/medication.model';
+import { ImageUploadService } from '../../services/image-upload.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -35,7 +36,9 @@ export class EditDependentComponent implements OnInit, OnDestroy {
     private readonly authService: AuthService,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
-    private readonly medicationService: MedicationService
+    private readonly medicationService: MedicationService,
+    private readonly imageUploadService: ImageUploadService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -159,16 +162,20 @@ export class EditDependentComponent implements OnInit, OnDestroy {
 
     this.isUploadingImage = true;
     this.error = null;
+    this.cdr.markForCheck();
 
     try {
-      const imageUrl = await this.convertFileToDataUrl(file);
-      this.imagePreview = imageUrl;
-      this.form.patchValue({ image: imageUrl });
+      const uploadResponse = await this.imageUploadService.uploadImage(file);
+      this.imagePreview = uploadResponse.downloadUrl;
+      this.form.patchValue({ image: uploadResponse.downloadUrl });
+      this.cdr.markForCheck();
     } catch (error: any) {
-      this.error = error?.message || 'Error al procesar la imagen';
+      this.error = error?.message || 'Error al subir la imagen';
       console.error('Upload error:', error);
+      this.cdr.markForCheck();
     } finally {
       this.isUploadingImage = false;
+      this.cdr.markForCheck();
     }
   }
 

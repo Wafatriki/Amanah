@@ -15,11 +15,17 @@
   flex-direction: column;
 }
 
+/* Evitar que la barra inferior móvil tape contenido: añadir padding inferior solo en móviles */
+@media (max-width: 767px) {
+  .main-content {
+    padding-bottom: 88px; /* espacio suficiente para la barra inferior */
+  }
+}
+
 /* When bottom navigation is visible on small screens, add bottom padding
    to avoid content being obscured by the fixed nav (includes safe-area).
-   BUT NOT for full-height routes like chat which manage their own scrolling.
 */
-.main-content.has-bottom-nav:not(.full-height) {
+.main-content.has-bottom-nav {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
 }
 

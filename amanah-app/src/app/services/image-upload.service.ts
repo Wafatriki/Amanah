@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface UploadResponse {
   fileId: string;
@@ -13,6 +13,10 @@ export interface UploadResponse {
   providedIn: 'root'
 })
 export class ImageUploadService {
+  private readonly backendUrl = environment.backendUrl || 'http://localhost:3000';
+
+  constructor() {}
+
   /**
    * Validar que el archivo es una imagen válida
    */
@@ -32,7 +36,7 @@ export class ImageUploadService {
   }
 
   /**
-   * Subir una imagen (método público con validaciones)
+   * Subir una imagen al backend usando fetch
    */
   async uploadImage(file: File): Promise<UploadResponse> {
     const validation = this.validateImage(file);
@@ -40,67 +44,58 @@ export class ImageUploadService {
       throw new Error(validation.error || 'Archivo inválido');
     }
 
-    return new Promise<UploadResponse>((resolve, reject) => {
-      const reader = new FileReader();
-      const timeoutMs = 15000;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const cleanup = (): void => {
-        clearTimeout(timeoutId);
-        reader.onload = null;
-        reader.onerror = null;
-        reader.onabort = null;
-      };
+      console.log('Uploading to:', `${this.backendUrl}/upload`);
 
-      const timeoutId = setTimeout(() => {
-        cleanup();
-        reject(new Error('La lectura de la imagen tardó demasiado. Intenta con otra imagen.'));
-      }, timeoutMs);
+      const response = await fetch(`${this.backendUrl}/upload`, {
+        method: 'POST',
+        body: formData,
+        // NO incluir Content-Type header - fetch lo hará automáticamente
+      });
 
-      reader.onload = () => {
-        cleanup();
-        const dataUrl = typeof reader.result === 'string' ? reader.result : '';
-        if (!dataUrl) {
-          reject(new Error('No se pudo procesar la imagen seleccionada'));
-          return;
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+      }
 
-        resolve({
-          fileId: dataUrl,
-          originalName: file.name,
-          size: file.size,
-          mimetype: file.type,
-          downloadUrl: dataUrl,
-        });
-      };
-
-      reader.onerror = () => {
-        cleanup();
-        reject(new Error('No se pudo leer la imagen'));
-      };
-
-      reader.onabort = () => {
-        cleanup();
-        reject(new Error('La lectura de la imagen fue cancelada'));
-      };
-
-      reader.readAsDataURL(file);
-    });
+      const data: UploadResponse = await response.json();
+      console.log('Upload successful:', data);
+      return data;
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      throw new Error(error.message || 'No se pudo subir la imagen. Intenta de nuevo.');
+    }
   }
 
   /**
    * Obtener URL para ver la imagen
    */
   getImageUrl(fileId: string): string {
-    return fileId.startsWith('http') ? fileId : fileId;
+    return fileId.startsWith('http')
+      ? fileId
+      : `${this.backendUrl}/file/${fileId}`;
   }
 
   /**
-   * Eliminar una imagen almacenada localmente. No requiere acción remota.
+   * Eliminar una imagen del backend
    */
-  deleteImage(fileId: string): Observable<{ success: boolean; message: string }> {
-    return new Observable(observer => {
-      observer.next({ success: true, message: 'Imagen eliminada correctamente' });
-      observer.complete();
-    });
+  async deleteImage(fileId: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetch(`${this.backendUrl}/delete/${fileId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('Error deleting image:', error);
+      throw new Error(error.message || 'No se pudo eliminar la imagen');
+    }
   }
 }

@@ -10,7 +10,7 @@ import { AIChatService } from '../services/ai-chat.service';
 import { DependentService } from '../services/dependent.service';
 import { ChatMessage } from '../models/chat.model';
 import { UiFeedbackService } from '../services/ui-feedback.service';
-import { NotificationService } from '../services/notification.service';
+import { NotificationService, chatState } from '../services/notification.service';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -76,8 +76,8 @@ export class ChatComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Notify notification service that user is in chat
-    this.notificationService.setChatViewStatus(true);
+    // Marcar que el usuario está dentro del chat
+    chatState.isInsideChat = true;
 
     // Load current user with proper fullName from Firestore
     this.authService.currentUser$
@@ -100,6 +100,7 @@ export class ChatComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(id => {
         this.activeDependentId = id;
+        chatState.activeDependentId = id;
         console.log('Chat: Active dependent ID:', id);
         if (id) {
           this.loadMessages();
@@ -112,8 +113,10 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Notify notification service that user is leaving chat
-    this.notificationService.setChatViewStatus(false);
+    // Marcar que el usuario está fuera del chat
+    chatState.isInsideChat = false;
+    chatState.activeDependentId = null;
+
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -188,17 +191,14 @@ export class ChatComponent implements OnInit, OnDestroy {
       .then((caregivers: any[]) => {
         console.log('Caregivers loaded:', caregivers);
         if (caregivers && Array.isArray(caregivers)) {
-          // Filter out invited users from participants list
-          const filteredCaregivers = caregivers.filter(caregiver => caregiver.role !== 'invited');
-
           // Usar directamente los datos que vienen del servicio
-          this.caregivers = filteredCaregivers.map(caregiver => ({
+          this.caregivers = caregivers.map(caregiver => ({
             id: caregiver.userId,
             name: caregiver.name,
             image: caregiver.image || undefined
           }));
 
-          console.log('Caregivers mapped (filtered):', this.caregivers);
+          console.log('Caregivers mapped:', this.caregivers);
 
           // Guardar en el mapa de nombres para los mensajes
           caregivers.forEach(caregiver => {
@@ -449,7 +449,7 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     // Enviar a la IA
     this.aiChatService
-      .sendMessage(userMessage, this.activeDependentId, this.currentUserId || undefined)
+      .sendMessage(userMessage, this.activeDependentId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (reply: string) => {
