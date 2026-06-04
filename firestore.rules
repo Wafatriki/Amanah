@@ -15,14 +15,14 @@ service cloud.firestore {
     }
     
     // ========================================
-    // DEFAULT DENY ALL - Security by default
+    // DEFAULT DENEGAR ALL
     // ========================================
     match /{document=**} {
       allow read, write: if false;
     }
     
     // ========================================
-    // USERS COLLECTION - Each user owns their profile
+    // USERS COLLECTION 
     // ========================================
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -37,7 +37,7 @@ service cloud.firestore {
     match /dependents/{dependentId} {
       allow read, write: if isAuthenticated();
       
-      // Allow all subcollections for authenticated users
+      // permitir usuarios autenticados
       match /tasks/{taskId} {
         allow read, write: if isAuthenticated();
       }
@@ -64,7 +64,7 @@ service cloud.firestore {
     }
     
     // ========================================
-    // LEGACY COLLECTIONS - Backward compatibility
+    // LEGACY COLLECTIONS 
     // ========================================
     
     match /tasks/{taskId} {
@@ -80,28 +80,28 @@ service cloud.firestore {
     }
     
     // ========================================
-    // CAREGIVER RELATIONSHIPS
+    // CAREGIVER RELACIONES
     // ========================================
     match /caregiver_dependents/{relationId} {
       allow read, write: if isAuthenticated();
     }
     
     // ========================================
-    // CHAT FUNCTIONALITY
+    // CHAT 
     // ========================================
     match /chatRooms/{roomId} {
       allow read, write: if isAuthenticated();
     }
     
     // ========================================
-    // INVITATIONS FOR CAREGIVER ACCEPTANCE
+    // INVITACIONES
     // ========================================
     match /invitations/{invitationId} {
       allow read, write: if isAuthenticated();
     }
     
     // ========================================
-    // AI CHAT AUDIT LOGS (RGPD compliance)
+    // AI CHAT AUDIT LOGS 
     // ========================================
     match /ai_chat_logs/{logId} {
       allow create: if isAuthenticated();
