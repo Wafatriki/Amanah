@@ -145,6 +145,14 @@ firebase functions:config:set groq.api_key="tu-api-key-aqui"
 
 ---
 
+
+
+## 🎨 Créditos
+ 
+Iconos e ilustraciones obtenidos de [Flaticon](https://www.flaticon.com).
+ 
+---
+
 ## 📄 Licencia
 
 Proyecto académico — Trabajo de Fin de Grado.
