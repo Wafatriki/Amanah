@@ -105,7 +105,6 @@ export class EditCaregiverProfileComponent implements OnInit, OnDestroy {
     if (fileInput && fileInput.files && fileInput.files.length > 0) {
       const file = fileInput.files[0];
 
-      // Mostrar preview local mientras se sube
       const reader = new FileReader();
       reader.onload = (e: any) => {
         this.imagePreview = e.target.result;

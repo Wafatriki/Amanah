@@ -42,7 +42,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
   sortBy: 'dueDate' | 'priority' | 'createdAt' = 'dueDate';
   selectedCaregiverId: string | null = null;
   showFilters = false;  // Control de visibilidad del panel de filtros
-  showAllTasks = true; // Por defecto mostrar todas las tareas del dependiente
+  showAllTasks = false; // Por defecto mostrar solo mis tareas asignadas
 
   // Modal de detalles
   showDetailModal = false;
@@ -401,7 +401,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
       // Update in Firestore in the background
       // IMPORTANT: Use parent's completedInstances for recurring tasks
-      await this.taskService.setTaskStatus(originalTaskId, statusToSave, this.userId, completedInstancesToSave, this.dependentId || undefined);
+      await this.taskService.setTaskStatus(originalTaskId, statusToSave, this.userId, completedInstancesToSave);
       console.log('Task status updated to:', newStatus, '| Saved to Firebase as status:', statusToSave);
     } catch (error) {
       console.error('Error updating task status:', error);
@@ -457,7 +457,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
     if (confirmed) {
       try {
-        await this.taskService.deleteTask(taskId, this.dependentId || undefined);
+        await this.taskService.deleteTask(taskId);
         console.log('Task deleted');
         this.notificationService.notifySuccess('Tarea eliminada', 'La tarea se eliminó correctamente');
       } catch (error) {

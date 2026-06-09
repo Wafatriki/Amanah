@@ -69,7 +69,6 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Check permission to access chat
     if (this.permissionService.isReadOnly()) {
       console.warn('Chat: User is read-only (invited), redirecting to dashboard');
       this.router.navigate(['/dashboard']);
@@ -79,13 +78,11 @@ export class ChatComponent implements OnInit, OnDestroy {
     // Marcar que el usuario está dentro del chat
     chatState.isInsideChat = true;
 
-    // Load current user with proper fullName from Firestore
     this.authService.currentUser$
       .pipe(takeUntil(this.destroy$))
       .subscribe(async user => {
         if (user) {
           this.currentUserId = user.uid;
-          // Get fullName from Firestore
           this.currentUserName = await this.authService.getUserFullName(user.uid);
           this.userNames.set(user.uid, this.currentUserName);
           console.log('Chat: Current user loaded', { uid: this.currentUserId, name: this.currentUserName });
@@ -95,7 +92,6 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       });
 
-    // Load active dependent
     this.activeDependentService.activeDependentId$
       .pipe(takeUntil(this.destroy$))
       .subscribe(id => {
@@ -175,7 +171,6 @@ export class ChatComponent implements OnInit, OnDestroy {
           const caregiverCount = dependent.caregivers?.length || 0;
           this.participantCount = caregiverCount + 1; // +1 para el dependiente
 
-          // Load caregiver names from their profiles
           this.loadCaregiverNames(dependentId);
 
           this.cdr.markForCheck();
@@ -493,13 +488,11 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   private scrollToBottom(): void {
-    // First scroll attempt immediately
     if (this.messagesContainer) {
       const el = this.messagesContainer.nativeElement;
       el.scrollTop = el.scrollHeight;
     }
 
-    // Second scroll attempt after a short delay to ensure rendering is complete
     setTimeout(() => {
       if (this.messagesContainer) {
         const el = this.messagesContainer.nativeElement;
@@ -507,7 +500,6 @@ export class ChatComponent implements OnInit, OnDestroy {
       }
     }, 100);
 
-    // Third attempt with requestAnimationFrame for smoother scrolling
     requestAnimationFrame(() => {
       if (this.messagesContainer) {
         const el = this.messagesContainer.nativeElement;

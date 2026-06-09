@@ -62,7 +62,6 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
     this.loading = true;
 
     try {
-      // SECURITY: Verify current user existence
       const currentUser = this.authService.getCurrentUser();
       if (!currentUser) {
         console.warn('No current user found, redirecting to login');
@@ -88,7 +87,6 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
         this.isOwnProfile = true;
       }
 
-      // Load the caregiver data
       this.authService
         .getUserData(userIdToLoad)
         .pipe(takeUntil(this.destroy$))
@@ -105,7 +103,6 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
               return;
             }
 
-            // Convert Firestore Timestamp to Date if needed
             if (userData.createdAt?.toDate) {
               userData.createdAt = userData.createdAt.toDate();
             }
@@ -134,7 +131,6 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
 
   async verifyAccessToProfile(userIdToView: string): Promise<boolean> {
     try {
-      // Get the active dependent to check if both users are caregivers of the same dependent
       const activeDependentId = localStorage.getItem('activeDependentId');
 
       if (!activeDependentId) {
@@ -142,16 +138,11 @@ export class CaregiverProfileComponent implements OnInit, OnDestroy {
         return false;
       }
 
-      // Get caregivers of the dependent
       const caregivers = await this.dependentService.getCaregiversForDependent(activeDependentId);
 
-      // Check if current user is a caregiver
       const currentUserIsCaregiverOfDependent = caregivers.some(c => c.userId === this.currentUserId);
-
-      // Check if the user being viewed is also a caregiver
       const viewedUserIsCaregiverOfDependent = caregivers.some(c => c.userId === userIdToView);
 
-      // Both must be caregivers of the same dependent
       return currentUserIsCaregiverOfDependent && viewedUserIsCaregiverOfDependent;
     } catch (error) {
       console.error('Error verifying access:', error);

@@ -53,7 +53,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   hasDependents = false;
   loading = true;
 
-  // Real-time data from services
   upcomingEvents: CalendarEvent[] = [];
   allUrgentTasks: Task[] = [];
   todaysTasks: Task[] = [];
@@ -64,7 +63,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   hasTodayAppointments: boolean = false; // Para cambiar título dinámicamente
   unreadMessages: ChatMessage[] = [];
 
-  // Mock data as fallback
   mockMedications: DashboardMedication[] = [
     { name: 'Vitamina D3', dose: '4000 IU • 1 cápsula', time: '8:00 AM', status: 'pending', color: 'purple' },
     { name: 'Enalapril', dose: '10 mg • 1 comprimido', time: '8:00 AM', status: 'pending', color: 'blue' },
@@ -76,13 +74,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { title: 'Fisioterapia', doctor: 'Laura Martínez', location: 'Centro Norte', date: '2 Mar', time: '16:00 PM', color: 'blue' }
   ];
 
-  // Calendar properties
   activeCalendarDay: number | null = null;
   currentMonth: number = new Date().getMonth();
   currentYear: number = new Date().getFullYear();
   today: Date = new Date();
 
-  // Track tasks being updated to prevent race conditions
   private updatingTaskIds = new Set<string>();
 
   // Store calendar events separately for combining with tasks/appointments
@@ -363,14 +359,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
         createdBy: this.user?.uid || '',
       }));
 
-    // Include calendar events (starting from tomorrow, next 30 days)
+    //  calendar events (starting from tomorrow, next 30 days)
     const calendarEvents = this.currentCalendarEvents.filter(event => {
       const eventDate = new Date(event.startDate);
       eventDate.setHours(0, 0, 0, 0);
       return eventDate >= tomorrow && eventDate <= thirtyDaysLater;
     });
 
-    // Combine and sort by date
     this.upcomingEvents = [...calendarEvents, ...appointmentEvents, ...taskEvents]
       .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
@@ -816,34 +811,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
   async completeTask(taskId: string | undefined): Promise<void> {
     if (!taskId || !this.user) return;
 
-    // Prevent multiple rapid clicks on same task
     if (this.updatingTaskIds.has(taskId)) return;
 
     const task = this.todaysTasks.find(t => t.id === taskId) || this.allUrgentTasks.find(t => t.id === taskId);
     if (!task) return;
 
-    // Mark as updating
     this.updatingTaskIds.add(taskId);
 
     try {
-      // Update state locally IMMEDIATELY for instant UI feedback
       const newStatus = task.status === 'completed' ? 'pending' : 'completed';
       task.status = newStatus;
       this.cdr.markForCheck();
 
-      // Update in Firestore in the background
       await this.taskService.setTaskStatus(taskId, newStatus, this.user.uid, undefined, this.activeDependentId || undefined);
       console.log('Task status updated to:', newStatus);
     } catch (error) {
       console.error('Error updating task status:', error);
-      // On error, revert the local change
       const task = this.todaysTasks.find(t => t.id === taskId) || this.allUrgentTasks.find(t => t.id === taskId);
       if (task) {
         task.status = task.status === 'completed' ? 'pending' : 'completed';
         this.cdr.markForCheck();
       }
     } finally {
-      // Remove from updating set
       this.updatingTaskIds.delete(taskId);
     }
   }
@@ -851,16 +840,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   getStats() {
     const currentUserId = this.authService.getCurrentUser()?.uid;
 
-    // Get today's date at midnight
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Filter tasks for today only
     const myTasks = this.allTasks.filter(task => {
       if (task.status !== 'pending' || !currentUserId) return false;
       if (!task.assignedTo?.some((a: any) => a.userId === currentUserId)) return false;
 
-      // Check if task is due today
       const dueDate = task.dueDate instanceof Date ? task.dueDate : new Date(task.dueDate);
       dueDate.setHours(0, 0, 0, 0);
 
@@ -875,7 +861,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
   }
 
-  // Helper methods for template
   getEventColor(eventType: string): string {
     const colors: Record<string, string> = {
       'task': '#B8A5D6',

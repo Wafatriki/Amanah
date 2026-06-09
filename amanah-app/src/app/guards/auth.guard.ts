@@ -2,24 +2,20 @@ import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { inject } from '@angular/core';
 
-export const authGuard: CanActivateFn = (route, state) => {
+export const authGuard: CanActivateFn = async (route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
   const currentUser = authService.getCurrentUser();
 
-  // If there's no authenticated user, redirect to login
   if (!currentUser) {
-    router.navigate(['/login']);
-    return false;
+    return router.parseUrl('/login');
   }
 
-  // Require email verification before allowing access
-  if (!currentUser.emailVerified) {
-    // Sign out to ensure app state is clean and send user to verification notice
+  const isVerified = await authService.isAccountEmailVerifiedForGuard(currentUser);
+  if (!isVerified) {
     authService.logout().catch(() => {});
-    router.navigate(['/verify-email']);
-    return false;
+    return router.parseUrl('/verify-email');
   }
 
   return true;

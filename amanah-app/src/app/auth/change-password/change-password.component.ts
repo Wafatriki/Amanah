@@ -42,7 +42,6 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.updatePasswordRequirements();
-    // Escuchar cambios en la nueva contraseña para calcular fortaleza
     this.changePasswordForm
       .get('newPassword')
       ?.valueChanges.pipe(takeUntil(this.destroy$))
@@ -109,7 +108,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       await this.authService.changePassword(currentPassword, newPassword);
       this.successMessage = 'Contraseña cambiada. Se cerrará la sesión para que vuelvas a entrar con la nueva contraseña.';
 
-      // Cerrar modal después de 1.5 segundos
+      //cerrar el modal después de 1.5 segundos
       setTimeout(() => {
         this.success.emit();
         this.onClose();

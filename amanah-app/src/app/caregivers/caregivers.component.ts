@@ -57,16 +57,10 @@ export class CaregiversComponent implements OnInit, OnDestroy {
       });
 
     // Obtener el dependiente activo una vez
-    let activeDependentId = this.activeDependentService.getActiveDependentId();
-    
-    // Also check localStorage (set by accept-invitation component)
-    if (!activeDependentId?.trim()) {
-      activeDependentId = localStorage.getItem('activeDependentId') || '';
-    }
+    const activeDependentId = this.activeDependentService.getActiveDependentId();
 
     if (activeDependentId?.trim()) {
       this.dependentId = activeDependentId;
-      console.log('[CAREGIVERS] Loading caregivers for dependent:', activeDependentId);
       this.loadCaregivers();
     } else {
       this.loading = false;
@@ -78,7 +72,6 @@ export class CaregiversComponent implements OnInit, OnDestroy {
       .subscribe(dependentId => {
         if (dependentId?.trim()) {
           this.dependentId = dependentId;
-          console.log('[CAREGIVERS] Dependent changed, reloading caregivers:', dependentId);
           this.loadCaregivers();
         } else {
           this.loading = false;
@@ -93,18 +86,14 @@ export class CaregiversComponent implements OnInit, OnDestroy {
 
   async loadCaregivers(): Promise<void> {
     if (!this.dependentId) {
-      console.warn('[CAREGIVERS] No dependent ID available');
       return;
     }
 
     this.loading = true;
     this.error = '';
-    this.cdr.markForCheck();
 
     try {
-      console.log('[CAREGIVERS] Starting to load caregivers for dependent:', this.dependentId);
       this.caregivers = await this.dependentService.getCaregiversForDependent(this.dependentId);
-      console.log('[CAREGIVERS] Caregivers loaded successfully:', this.caregivers.length, 'caregivers');
 
       // Poner loading en false AHORA (no esperar al subscribe)
       this.loading = false;
@@ -115,17 +104,16 @@ export class CaregiversComponent implements OnInit, OnDestroy {
         next: (dependent) => {
           if (dependent) {
             this.dependentName = dependent.name;
-            console.log('[CAREGIVERS] Dependent name loaded:', dependent.name);
             this.cdr.markForCheck();
           }
         },
         error: (err) => {
-          console.error('[CAREGIVERS] Error loading dependent:', err);
+          console.error('Error loading dependent:', err);
           this.dependentName = 'Dependiente';
         }
       });
     } catch (error) {
-      console.error('[CAREGIVERS] Error in loadCaregivers:', error);
+      console.error('Error in loadCaregivers:', error);
       this.error = 'Error cargando cuidadores';
       this.loading = false;
       this.cdr.markForCheck();
@@ -284,7 +272,6 @@ export class CaregiversComponent implements OnInit, OnDestroy {
   viewCaregiverProfile(caregiverId: string, currentUserId: string | null): void {
     console.log('Viewing profile - caregiverId:', caregiverId, 'currentUserId:', currentUserId);
 
-    // Only allow viewing profile of other caregivers, not yourself
     if (currentUserId && caregiverId === currentUserId) {
       console.log('Same user, navigating to own profile');
       this.router.navigate(['/profile']);
@@ -296,11 +283,9 @@ export class CaregiversComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Save the dependent ID so the profile component can verify access
     localStorage.setItem('activeDependentId', this.dependentId);
     console.log('Navigating to /profile/' + caregiverId);
 
-    // Navigate to the caregiver's profile
     this.router.navigate(['/profile', caregiverId]);
   }
 

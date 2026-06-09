@@ -13,12 +13,12 @@ export interface AIResponse {
 
 /**
  * AIChatService
- * 
+ *
  * ARQUITECTURA:
  * - Functions: Emulator en dev (localhost:5001), Cloud en prod
  * - Firestore: Real en ambos (dev y prod)
  * - Chat historial: Firestore Emulator en dev (gratis), no se guarda en prod
- * 
+ *
  * COSTOS:
  * - Cloud Functions: ~$0.0000002 por invocación (primeras 2M gratis)
  * - Firestore: Real en prod
@@ -36,14 +36,14 @@ export class AIChatService {
     private readonly chatEmulatorService: ChatFirestoreEmulatorService
   ) {
     this.functions = getFunctions(this.firebaseService.app);
-    
+
     // Conectar a Functions Emulator en desarrollo
     this.connectToEmulator();
-    
-    console.log('🚀 AIChatService inicializado');
-    
+
+    console.log('AIChatService inicializado');
+
     if (this.chatEmulatorService.isAvailable()) {
-      console.log('💾 Historial del chat se guardará en Firestore Emulator (GRATIS en desarrollo)');
+      console.log('Historial del chat se guardará en Firestore Emulator');
     }
   }
 
@@ -56,49 +56,49 @@ export class AIChatService {
       const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
 
       if (!isLocalhost) {
-        console.log('ℹ️ AIChatService: No en localhost, usando Cloud Functions');
+        console.log('ℹ AIChatService: No en localhost, usando Cloud Functions');
         return;
       }
 
       try {
         connectFunctionsEmulator(this.functions, 'localhost', 5001);
         this.functionsEmulatorConnected = true;
-        console.log('✅ AIChatService: Conectado a Functions Emulator (localhost:5001)');
+        console.log('AIChatService: Conectado a Functions Emulator (localhost:5001)');
       } catch (error: any) {
         if (error?.message?.includes('already')) {
           this.functionsEmulatorConnected = true;
-          console.log('ℹ️ AIChatService: Functions Emulator ya estaba conectado');
+          console.log('ℹAIChatService: Functions Emulator ya estaba conectado');
         } else {
-          console.warn('⚠️ AIChatService: No se pudo conectar a Functions Emulator:', error?.message);
-          console.warn('⚠️ Asegúrate de ejecutar: firebase emulators:start --only functions,firestore');
+          console.warn(' AIChatService: No se pudo conectar a Functions Emulator:', error?.message);
+          console.warn('Asegúrate de ejecutar: firebase emulators:start --only functions,firestore');
         }
       }
     } catch (error) {
-      console.error('❌ AIChatService: Error conectando a emulador:', error);
+      console.error('AIChatService: Error conectando a emulador:', error);
     }
   }
 
   /**
    * Envía un mensaje a la IA a través de Cloud Function
-   * 
+   *
    * En desarrollo:
    * - Cloud Function se ejecuta en Functions Emulator (localhost:5001)
    * - Historial se guarda en Firestore Emulator
-   * 
+   *
    * En producción:
    * - Cloud Function se ejecuta en Firebase Cloud
    * - Historial NO se guarda (solo en emulator)
-   * 
+   *
    * @param message Pregunta del usuario
    * @param dependentId ID del dependiente
    * @param userId ID del usuario (para guardar en historial)
    * @returns Observable con la respuesta de la IA
    */
   sendMessage(message: string, dependentId: string, userId?: string): Observable<string> {
-    console.log('📤 Enviando mensaje a IA...');
-    console.log('   Mensaje:', message);
-    console.log('   Dependiente:', dependentId);
-    console.log('   Usando Functions Emulator:', this.functionsEmulatorConnected);
+    console.log('Enviando mensaje a IA...');
+    console.log('Mensaje:', message);
+    console.log('Dependiente:', dependentId);
+    console.log('Usando Functions Emulator:', this.functionsEmulatorConnected);
 
     try {
       // Obtener referencia a la Cloud Function
@@ -107,15 +107,15 @@ export class AIChatService {
       // Llamar a la función con los parámetros
       return from(chatAI({ message, dependentId })).pipe(
         map((response: any) => {
-          console.log('✅ Respuesta de IA recibida');
+          console.log('Respuesta de IA recibida');
           const reply = response?.data?.reply || response?.reply || 'Sin respuesta del asistente';
-          
+
           // Guardar en historial del emulador (asincrónico, no bloquea la respuesta)
           if (userId) {
             this.chatEmulatorService.saveChatMessage(userId, dependentId, message, reply)
               .catch(err => console.error('Error guardando en historial:', err));
           }
-          
+
           return reply;
         }),
         catchError((error: any) => {
@@ -143,7 +143,7 @@ export class AIChatService {
   async getChatHistory(userId: string, dependentId: string) {
     try {
       const history = await this.chatEmulatorService.getChatHistory(userId, dependentId);
-      console.log(`📜 Historial recuperado: ${history.length} mensajes`);
+      console.log(`Historial recuperado: ${history.length} mensajes`);
       return history;
     } catch (error) {
       console.error('Error obteniendo historial:', error);

@@ -67,19 +67,16 @@ export class MedicationCalendarComponent implements OnInit {
 
     this.calendarDays = [];
 
-    // Add days from previous month
     for (let i = firstDayOfWeek - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, daysInPreviousMonth - i);
       this.calendarDays.push(this.createCalendarDay(date, false));
     }
 
-    // Add days of current month
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
       this.calendarDays.push(this.createCalendarDay(date, true));
     }
 
-    // Add days from next month
     const remainingDays = 42 - this.calendarDays.length;
     for (let day = 1; day <= remainingDays; day++) {
       const date = new Date(year, month + 1, day);
@@ -93,7 +90,6 @@ export class MedicationCalendarComponent implements OnInit {
     const dateStr = this.formatDateForComparison(date);
     const schedules: CalendarSchedule[] = [];
 
-    // Get schedules for this day
     if (isCurrentMonth) {
       this.medications.forEach(med => {
         // Verificar que la medicación sea válida para esta fecha

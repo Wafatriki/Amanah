@@ -29,16 +29,15 @@
 .menu-button {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #B8A5D6 0%, #a491c7 100%);
+  background: #f3f4f6;
   border: none;
   border-radius: 10px;
   font-size: 20px;
-  color: #ffffff;
   cursor: pointer;
   transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 
   &:hover {
-    filter: brightness(1.03);
+    background: rgba(184, 165, 214, 0.14);
     transform: translateY(-1px);
   }
 

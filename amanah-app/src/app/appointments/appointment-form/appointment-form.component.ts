@@ -87,7 +87,6 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       });
 
-    // Check if we're editing
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params: any) => {
       this.appointmentId = params['id'] || null;
       if (this.appointmentId) {
@@ -152,6 +151,13 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
       ? appointment.date
       : new Date(appointment.date);
 
+
+
+
+
+
+
+
     // Verificar si la especialidad está en la lista predefinida
     const isSpecialtyInList = this.specialties.includes(appointment.specialty);
     const specialtyValue = isSpecialtyInList ? appointment.specialty : 'Otro';
@@ -160,6 +166,13 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
     if (!isSpecialtyInList) {
       this.customSpecialty = appointment.specialty;
     }
+
+
+
+
+
+
+
 
     this.form.patchValue({
       date: this.formatDate(date),
@@ -176,6 +189,10 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
         minutesBefore: Number.parseInt(String(appointment.reminder?.minutesBefore || 60), 10)
       }
     });
+
+
+
+
 
     // Cargar cuidadores seleccionados anteriormente
     if (appointment.assignedCaregiverIds && appointment.assignedCaregiverIds.length > 0) {
@@ -206,7 +223,7 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
       // Remover: crear nuevo array sin el elemento
       this.selectedCaregiverIds = this.selectedCaregiverIds.filter(id => id !== caregiverId);
     } else {
-      // Agregar: crear nuevo array con el elemento
+      // añdir: crear nuevo array con el elemento
       this.selectedCaregiverIds = [...this.selectedCaregiverIds, caregiverId];
     }
     this.cdr.markForCheck();
@@ -227,7 +244,6 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
     console.log('Form errors:', this.form.errors);
     console.log('Form status:', this.form.status);
 
-    // Check each field
     console.log('date:', this.form.get('date')?.value, '| errors:', this.form.get('date')?.errors);
     console.log('time:', this.form.get('time')?.value, '| errors:', this.form.get('time')?.errors);
     console.log('specialty:', this.form.get('specialty')?.value, '| errors:', this.form.get('specialty')?.errors);
@@ -243,7 +259,6 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Validar especialidad personalizada si selecciona "Otro"
     if (this.form.get('specialty')?.value === 'Otro' && !this.customSpecialty.trim()) {
       this.error = 'Debes especificar la especialidad personalizada';
       console.log('BLOCKED: Custom specialty required');
@@ -266,7 +281,7 @@ export class AppointmentFormComponent implements OnInit, OnDestroy {
     const dateStr = formValue.date;
     const timeStr = formValue.time;
 
-    // Si selecciona "Otro", usa la especialidad personalizada
+    // si selecciona otro, usa la especialidad personalizada
     const specialty = formValue.specialty === 'Otro' ? this.customSpecialty : formValue.specialty;
 
     const appointmentDate = new Date(`${dateStr}T${timeStr}`);

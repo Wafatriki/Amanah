@@ -89,7 +89,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Load past appointments
+    // citas pasadas
     this.loadingPast = true;
     this.appointmentService
       .getAppointmentHistory(this.activeDependentId)
@@ -122,7 +122,6 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
         const appointmentDate = new Date(appointment.date);
         appointmentDate.setHours(0, 0, 0, 0);
 
-        // If appointment date is in the past, mark as overdue
         if (appointmentDate < today) {
           this.appointmentService
             .updateAppointmentStatus(dependentId, appointment.id!, 'overdue')
@@ -157,16 +156,8 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
-          // Optimistically move completed appointment to history for immediate UI feedback
-          const idx = this.upcomingAppointments.findIndex(a => a.id === appointmentId);
-          if (idx !== -1) {
-            const appt = this.upcomingAppointments.splice(idx, 1)[0];
-            appt.status = 'completed';
-            this.pastAppointments.unshift(appt);
-          } else {
-            // as fallback, reload from server
-            this.loadAppointments();
-          }
+          // Reload appointments to move it to history
+          this.loadAppointments();
           this.cdr.markForCheck();
         },
         error: (err: any) => {
@@ -178,13 +169,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
   }
 
   async cancelAppointment(appointmentId: string): Promise<void> {
-    if (!this.activeDependentId) return;
-
-    // If called from list, ensure selectedAppointment is set for modal logic
-    if (!this.selectedAppointment) {
-      this.selectedAppointment = this.upcomingAppointments.find(a => a.id === appointmentId) ||
-                              this.pastAppointments.find(a => a.id === appointmentId) || null;
-    }
+    if (!this.activeDependentId || !this.selectedAppointment) return;
 
     const confirmed = await this.uiFeedbackService.confirm({
       title: 'Cancelar cita',
@@ -200,16 +185,7 @@ export class AppointmentsComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: () => {
-            // Optimistically update lists: remove from upcoming and add to past as cancelled
-            const idx = this.upcomingAppointments.findIndex(a => a.id === appointmentId);
-            if (idx !== -1) {
-              const appt = this.upcomingAppointments.splice(idx, 1)[0];
-              appt.status = 'cancelled';
-              this.pastAppointments.unshift(appt);
-            } else if (this.selectedAppointment) {
-              this.selectedAppointment.status = 'cancelled';
-            }
-
+            this.selectedAppointment!.status = 'cancelled';
             this.closeModal();
             this.cdr.markForCheck();
             this.notificationService.notifySuccess('Cita cancelada', 'La cita se movió al historial');

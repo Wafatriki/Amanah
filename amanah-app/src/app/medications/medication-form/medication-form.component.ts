@@ -138,12 +138,10 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
   }
 
   private populateForm(medication: Medication): void {
-    // Clear existing schedules
     while (this.schedulesArray.length > 0) {
       this.schedulesArray.removeAt(0);
     }
 
-    // Populate basic info
     this.form.patchValue({
       name: medication.name,
       dose: medication.dose,
@@ -156,7 +154,6 @@ export class MedicationFormComponent implements OnInit, OnDestroy {
       isActive: medication.isActive
     });
 
-    // Populate schedules
     medication.schedules.forEach(schedule => {
       const reminderData = schedule.reminder || { enabled: false, minutesBefore: 15 };
       this.schedulesArray.push(

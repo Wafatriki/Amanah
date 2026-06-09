@@ -44,7 +44,6 @@ export class LoginComponent {
     const { email, password } = this.loginForm.value;
 
     this.authService.login(email, password).then(async () => {
-      // Get current user
       const currentUser = this.authService.getCurrentUser();
       if (!currentUser) {
         this.errorMessage = 'Error al obtener usuario';
@@ -53,7 +52,6 @@ export class LoginComponent {
         return;
       }
 
-      // Check if there's an invitation token
       const invitationToken = sessionStorage.getItem('invitationToken');
       if (invitationToken) {
         sessionStorage.removeItem('invitationToken');
@@ -61,18 +59,14 @@ export class LoginComponent {
         return;
       }
 
-      // Check number of dependents
       try {
         const dependents = await this.dependentService.getDependentsForUser(currentUser.uid).toPromise() || [];
 
         if (!dependents || dependents.length === 0) {
-          // No dependents - redirect to create dependent
           this.router.navigate(['/create-dependent']);
         } else if (dependents.length === 1) {
-          // One dependent - go to dashboard with that dependent
           this.router.navigate(['/dashboard']);
         } else {
-          // Multiple dependents - go to selector
           this.router.navigate(['/dependent-selector']);
         }
       } catch (err) {

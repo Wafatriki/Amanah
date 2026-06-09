@@ -186,8 +186,8 @@ export class CalendarComponent implements OnInit, OnDestroy {
   }
 
   private updateCalendarEvents(): void {
-    const baseEvents = this.getFilteredEvents();
-    const calendarEvents = baseEvents.map((event) => ({
+    const filteredEvents = this.getFilteredEvents();
+    const calendarEvents = filteredEvents.map((event) => ({
       id: event.id,
       title: event.title,
       start: new Date(event.startDate),
@@ -372,30 +372,20 @@ export class CalendarComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Aplicar filtro por tipo de evento
-    let filteredEvents: any[] = [];
-    if (this.selectedEventType === 'all') {
-      filteredEvents = [...calendarEvents, ...taskEvents, ...appointmentEvents];
-    } else if (this.selectedEventType === 'task') {
-      filteredEvents = [...taskEvents];
-    } else if (this.selectedEventType === 'appointment') {
-      filteredEvents = [...appointmentEvents];
-    } else if (this.selectedEventType === 'other') {
-      filteredEvents = [...calendarEvents];
-    }
-
     console.log('Calendar events summary:', {
       events: calendarEvents.length,
       tasks: taskEvents.length,
       appointments: appointmentEvents.length,
-      total: filteredEvents.length,
-      filter: this.selectedEventType,
+      total: calendarEvents.length + taskEvents.length + appointmentEvents.length,
       taskEventsList: taskEvents.slice(0, 5) // Mostrar primeros 5 eventos de tareas
     });
 
+    const allEvents = [...calendarEvents, ...taskEvents, ...appointmentEvents];
+    console.log('Total events to render:', allEvents.length, 'Events:', allEvents);
+
     this.calendarOptions = {
       ...this.calendarOptions,
-      events: filteredEvents,
+      events: allEvents,
     };
 
     this.cdr.markForCheck();

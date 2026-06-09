@@ -94,7 +94,6 @@ export class CalendarEventFormComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Pre-fill start date from query params if creating new event
     if (!this.isEditMode) {
       this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params) => {
         if (params['date']) {
@@ -185,7 +184,6 @@ export class CalendarEventFormComponent implements OnInit, OnDestroy {
       const startDateTime = new Date(`${formValue.startDate}T${formValue.startTime}`);
       const endDateTime = new Date(`${formValue.endDate}T${formValue.endTime}`);
 
-      // Always create a valid recurrence object
       const recurrenceConfig = {
         frequency: formValue.recurrence.frequency,
         endsAfterDays: formValue.recurrence.frequency !== 'never'

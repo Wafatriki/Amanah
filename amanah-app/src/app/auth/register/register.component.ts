@@ -153,30 +153,11 @@ export class RegisterComponent {
     return 'Fuerte';
   }
 
-  // Métodos para verificar requisitos de contraseña
-  hasMinLength(): boolean {
-    const password = this.registerForm.get('password')?.value || '';
-    return password.length >= 8;
-  }
-
-  hasUpperCase(): boolean {
-    const password = this.registerForm.get('password')?.value || '';
-    return /[A-Z]/.test(password);
-  }
-
-  hasLowerCase(): boolean {
-    const password = this.registerForm.get('password')?.value || '';
-    return /[a-z]/.test(password);
-  }
-
-  hasNumber(): boolean {
-    const password = this.registerForm.get('password')?.value || '';
-    return /[0-9]/.test(password);
-  }
-
-  hasSpecialChar(): boolean {
-    const password = this.registerForm.get('password')?.value || '';
-    return /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+  hasSpecialCharacter(): boolean {
+    const password = this.registerForm.get('password')?.value;
+    if (!password) return false;
+    const specialCharPattern = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/;
+    return specialCharPattern.test(password);
   }
 
   togglePasswordVisibility(): void {
@@ -206,16 +187,16 @@ export class RegisterComponent {
         this.isLoading = false;
         this.cdr.markForCheck();
 
-        // Navegar a la pantalla de verificación para que el usuario pueda reenviar el correo
+        // Redirigir después de 3 segundos
         setTimeout(() => {
           const invitationToken = sessionStorage.getItem('invitationToken');
           if (invitationToken) {
             sessionStorage.removeItem('invitationToken');
             this.router.navigate(['/accept-invitation'], { queryParams: { token: invitationToken } });
           } else {
-            this.router.navigate(['/verify-email']);
+            this.router.navigate(['/login']);
           }
-        }, 600);
+        }, 3000);
       })
       .catch((err: any) => {
         const errorCode = err.code || '';

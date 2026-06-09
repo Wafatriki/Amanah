@@ -263,20 +263,16 @@ export class DocumentListComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   canDeleteDocument(document: ClinicalDocument): boolean {
-    // Check if user is read-only (invited)
     if (this.permissionService.isReadOnly()) {
       return false;
     }
-    // Allow if admin or if user uploaded the document
     return this.permissionService.canDeleteDocument();
   }
 
   canEditDocument(document: ClinicalDocument): boolean {
-    // Check if user is read-only (invited)
     if (this.permissionService.isReadOnly()) {
       return false;
     }
-    // Allow if user has edit permission (caregivers and admins)
     return this.permissionService.canEditDocument();
   }
 

@@ -69,7 +69,8 @@
             </button>
           </div>
 
-<!-- Password Requirements -->
+          <!-- Password Strength Indicator -->
+          @if (registerForm.get('password')?.value) {
             <div class="password-strength">
               <div class="strength-bar-container">
                 <div
@@ -87,28 +88,29 @@
             <div class="password-requirements">
               <p class="requirements-title">Requisitos:</p>
               <ul class="requirements-list">
-                <li [class.met]="hasMinLength()">
-                  <span class="check">{{ hasMinLength() ? '✓' : '○' }}</span>
+                <li [class.met]="registerForm.get('password')?.value?.length >= 8">
+                  <span class="check">{{ registerForm.get('password')?.value?.length >= 8 ? '✓' : '○' }}</span>
                   Mínimo 8 caracteres
                 </li>
-                <li [class.met]="hasUpperCase()">
-                  <span class="check">{{ hasUpperCase() ? '✓' : '○' }}</span>
+                <li [class.met]="/[A-Z]/.test(registerForm.get('password')?.value)">
+                  <span class="check">{{ /[A-Z]/.test(registerForm.get('password')?.value) ? '✓' : '○' }}</span>
                   Una mayúscula
                 </li>
-                <li [class.met]="hasLowerCase()">
-                  <span class="check">{{ hasLowerCase() ? '✓' : '○' }}</span>
+                <li [class.met]="/[a-z]/.test(registerForm.get('password')?.value)">
+                  <span class="check">{{ /[a-z]/.test(registerForm.get('password')?.value) ? '✓' : '○' }}</span>
                   Una minúscula
                 </li>
-                <li [class.met]="hasNumber()">
-                  <span class="check">{{ hasNumber() ? '✓' : '○' }}</span>
+                <li [class.met]="/[0-9]/.test(registerForm.get('password')?.value)">
+                  <span class="check">{{ /[0-9]/.test(registerForm.get('password')?.value) ? '✓' : '○' }}</span>
                   Un número
                 </li>
-                <li [class.met]="hasSpecialChar()">
-                  <span class="check">{{ hasSpecialChar() ? '✓' : '○' }}</span>
+                <li [class.met]="hasSpecialCharacter()">
+                  <span class="check">{{ hasSpecialCharacter() ? '✓' : '○' }}</span>
                   Carácter especial (!@#$%^&*...)
                 </li>
               </ul>
             </div>
+          }
 
           @if (registerForm.get('password')?.invalid && registerForm.get('password')?.touched) {
             <span class="error">{{ getPasswordError() }}</span>

@@ -91,7 +91,7 @@ export class CaregiverTasksComponent implements OnInit, OnDestroy {
     if (!taskId || !this.userId) return;
 
     try {
-      await this.taskService.completeTask(taskId, this.userId, undefined, this.selectedDependentId || undefined);
+      await this.taskService.completeTask(taskId, this.userId);
       console.log('Task completed');
       this.myTasks = this.myTasks.filter(t => t.id !== taskId);
       this.cdr.markForCheck();
@@ -118,7 +118,7 @@ export class CaregiverTasksComponent implements OnInit, OnDestroy {
 
     if (confirmed) {
       try {
-        await this.taskService.deleteTask(taskId, this.selectedDependentId || undefined);
+        await this.taskService.deleteTask(taskId);
         console.log('Task deleted');
         this.myTasks = this.myTasks.filter(t => t.id !== taskId);
         this.cdr.markForCheck();

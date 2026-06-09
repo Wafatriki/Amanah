@@ -42,7 +42,7 @@ export class ChatFirestoreEmulatorService {
       const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
 
       if (!isLocalhost) {
-        console.warn('⚠️ ChatEmulatorService: No en localhost, emulador deshabilitado');
+        console.warn('ChatEmulatorService: No en localhost, emulador deshabilitado');
         return;
       }
 
@@ -52,7 +52,7 @@ export class ChatFirestoreEmulatorService {
       try {
         connectFirestoreEmulator(this.emulatorFirestore, 'localhost', 8080);
         this.isEmulatorConnected = true;
-        console.log('✅ ChatEmulatorService: Conectado a Firestore Emulator (localhost:8080) para historial de chat');
+        console.log('ChatEmulatorService: Conectado a Firestore Emulator (localhost:8080) para historial de chat');
       } catch (error: any) {
         // El emulador ya está conectado o no está disponible
         if (error?.message?.includes('already connected')) {
@@ -103,7 +103,7 @@ export class ChatFirestoreEmulatorService {
    */
   async getChatHistory(userId: string, dependentId: string): Promise<ChatHistoryRecord[]> {
     if (!this.isEmulatorConnected) {
-      console.warn('⚠️ ChatEmulatorService: Emulador no conectado, retornando historial vacío');
+      console.warn('ChatEmulatorService: Emulador no conectado, retornando historial vacío');
       return [];
     }
 
@@ -131,10 +131,10 @@ export class ChatFirestoreEmulatorService {
         });
       });
 
-      console.log(`✅ ChatEmulatorService: ${messages.length} mensajes recuperados del emulador`);
+      console.log(`ChatEmulatorService: ${messages.length} mensajes recuperados del emulador`);
       return messages;
     } catch (error) {
-      console.error('❌ ChatEmulatorService: Error leyendo historial:', error);
+      console.error('ChatEmulatorService: Error leyendo historial:', error);
       return [];
     }
   }
