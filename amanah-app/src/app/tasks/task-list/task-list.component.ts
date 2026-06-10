@@ -438,34 +438,37 @@ export class TaskListComponent implements OnInit, OnDestroy {
     });
   }
 
-  async deleteTask(taskId: string | undefined): Promise<void> {
-    if (!taskId) return;
+async deleteTask(taskId: string | undefined): Promise<void> {
+  if (!taskId) return;
 
-    // Solo cuidadores pueden eliminar
-    if (this.permissionService.isReadOnly()) {
-      this.notificationService.notifyError('Sin permisos', 'No tienes permisos para eliminar tareas');
-      return;
-    }
+  if (this.permissionService.isReadOnly()) {
+    this.notificationService.notifyError('Sin permisos', 'No tienes permisos para eliminar tareas');
+    return;
+  }
 
-    const confirmed = await this.uiFeedbackService.confirm({
-      title: 'Eliminar tarea',
-      message: 'Esta acción eliminará la tarea de forma permanente.',
-      confirmText: 'Eliminar',
-      cancelText: 'Cancelar',
-      dangerous: true
-    });
+  const confirmed = await this.uiFeedbackService.confirm({
+    title: 'Eliminar tarea',
+    message: 'Esta acción eliminará la tarea de forma permanente.',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    dangerous: true
+  });
 
-    if (confirmed) {
-      try {
-        await this.taskService.deleteTask(taskId);
-        console.log('Task deleted');
-        this.notificationService.notifySuccess('Tarea eliminada', 'La tarea se eliminó correctamente');
-      } catch (error) {
-        console.error('Error deleting task:', error);
-        this.notificationService.notifyError('Error', 'No se pudo eliminar la tarea');
-      }
+  if (confirmed) {
+    try {
+      // Obtener el ID original (para tareas recurrentes expandidas)
+      const task = this.tasks.find(t => t.id === taskId);
+      const originalTaskId = task?.parentTaskId || taskId;
+
+      await this.taskService.deleteTask(originalTaskId, this.dependentId || undefined);
+      console.log('Task deleted');
+      this.notificationService.notifySuccess('Tarea eliminada', 'La tarea se eliminó correctamente');
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      this.notificationService.notifyError('Error', 'No se pudo eliminar la tarea');
     }
   }
+}
 
   createNewTask(): void {
     this.router.navigate(['/tasks/new']);

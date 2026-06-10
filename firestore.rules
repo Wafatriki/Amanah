@@ -2,30 +2,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ========================================
+    // HELPER FUNCTIONS
+    // ========================================
     function isAuthenticated() {
       return request.auth != null;
     }
+
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
+
     function isCaregiverOf(dependentId) {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/caregiver_dependents/$(request.auth.uid + "_" + dependentId));
     }
-    function isParticipant(roomData) {
-      return request.auth.uid == roomData.user1Id ||
-             request.auth.uid == roomData.user2Id;
-    }
+
     function isPrimaryCaregiver(dependentId) {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/caregiver_dependents/$(request.auth.uid + "_" + dependentId)) &&
         get(/databases/$(database)/documents/caregiver_dependents/$(request.auth.uid + "_" + dependentId)).data.role == "primary_caregiver";
     }
 
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
+    // ========================================
+    // USERS COLLECTION
+    // ========================================
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() && isOwner(userId);
@@ -34,36 +35,86 @@ service cloud.firestore {
             .affectedKeys().hasAny(['uid', 'email', 'role']);
     }
 
+    // ========================================
+    // DEPENDENTS & SUBCOLLECTIONS
+    // ========================================
     match /dependents/{dependentId} {
-      allow read, write: if isCaregiverOf(dependentId);
+      allow read: if isCaregiverOf(dependentId);
+      allow create: if isAuthenticated(); 
+      allow update, delete: if isCaregiverOf(dependentId);
 
+      // ========================================
+      // TASKS SUBCOLLECTION
+      // ========================================
       match /tasks/{taskId} {
-        allow read, write: if isCaregiverOf(dependentId);
+        allow read: if isCaregiverOf(dependentId);
+        allow create: if isCaregiverOf(dependentId);
+        allow update: if isCaregiverOf(dependentId);
+        allow delete: if isCaregiverOf(dependentId);
       }
+
+      // ========================================
+      // MEDICATIONS SUBCOLLECTION
+      // ========================================
       match /medications/{medicationId} {
-        allow read, write: if isCaregiverOf(dependentId);
+        allow read: if isCaregiverOf(dependentId);
+        allow create: if isCaregiverOf(dependentId);
+        allow update: if isCaregiverOf(dependentId);
+        allow delete: if isCaregiverOf(dependentId);
       }
+
+      // ========================================
+      // APPOINTMENTS SUBCOLLECTION
+      // ========================================
       match /appointments/{appointmentId} {
-        allow read, write: if isCaregiverOf(dependentId);
+        allow read: if isCaregiverOf(dependentId);
+        allow create: if isCaregiverOf(dependentId);
+        allow update: if isCaregiverOf(dependentId);
+        allow delete: if isCaregiverOf(dependentId);
       }
+
+      // ========================================
+      // CALENDAR EVENTS SUBCOLLECTION
+      // ========================================
       match /calendar_events/{eventId} {
-        allow read, write: if isCaregiverOf(dependentId);
+        allow read: if isCaregiverOf(dependentId);
+        allow create: if isCaregiverOf(dependentId);
+        allow update: if isCaregiverOf(dependentId);
+        allow delete: if isCaregiverOf(dependentId);
       }
+
+      // ========================================
+      // MESSAGES SUBCOLLECTION
+      // ========================================
       match /messages/{messageId} {
-        allow read, write: if isCaregiverOf(dependentId);
+        allow read: if isCaregiverOf(dependentId);
+        allow create: if isCaregiverOf(dependentId);
+        allow update: if isCaregiverOf(dependentId);
+        allow delete: if isCaregiverOf(dependentId) && request.auth.uid == resource.data.userId;
       }
+
+      // ========================================
+      // DOCUMENTS SUBCOLLECTION
+      // ========================================
       match /documents/{documentId} {
-        allow read, write: if isCaregiverOf(dependentId);
+        allow read: if isCaregiverOf(dependentId);
+        allow create: if isCaregiverOf(dependentId);
+        allow update: if isCaregiverOf(dependentId);
+        allow delete: if isCaregiverOf(dependentId);
       }
     }
 
+    // ========================================
+    // CAREGIVER_DEPENDENTS COLLECTION
+    // ========================================
     match /caregiver_dependents/{relationId} {
       allow read: if isAuthenticated();
 
-      // ✅ CORREGIDO: permite crear si eres primary_caregiver YA EXISTENTE,
-      //    O si la relación que estás creando te corresponde a ti mismo
-      //    (caso: aceptar invitación crea tu propia relación)
-      allow create: if isPrimaryCaregiver(request.resource.data.dependentId)
+      // Permitir crear si:
+      // 1. Eres el primary_caregiver ya existente (invitando nuevo cuidador)
+      // 2. La relación que estás creando es LA TUYA PROPIA (aceptar invitación)
+      allow create, write: if 
+        isPrimaryCaregiver(request.resource.data.dependentId)
         || (isAuthenticated()
             && request.auth.uid == request.resource.data.userId
             && relationId == request.auth.uid + "_" + request.resource.data.dependentId);
@@ -72,30 +123,33 @@ service cloud.firestore {
       allow delete: if isPrimaryCaregiver(resource.data.dependentId);
     }
 
+    // ========================================
+    // CHAT ROOMS COLLECTION
+    // ========================================
     match /chatRooms/{roomId} {
-      allow read, write: if isAuthenticated() && isParticipant(resource.data);
-      allow create: if isAuthenticated() && isParticipant(request.resource.data);
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if false;
     }
 
+    // ========================================
+    // INVITATIONS COLLECTION
+    // ========================================
     match /invitations/{invitationId} {
       allow create: if isAuthenticated() &&
         request.auth.uid == request.resource.data.inviterUserId;
       allow read: if isAuthenticated();
-      // ✅ Solo el destinatario o el invitador pueden actualizar
+      //Solo el invitador puede actualizar
       allow update: if isAuthenticated() &&
         (request.auth.uid == resource.data.inviterUserId ||
-         request.auth.uid == resource.data.inviteeUserId);
+         request.resource.data.acceptedByUserId == request.auth.uid);
       allow delete: if isAuthenticated() &&
         request.auth.uid == resource.data.inviterUserId;
     }
 
-    match /ai_chat_logs/{logId} {
-      allow create: if isAuthenticated();
-      allow read: if isAuthenticated() &&
-        request.auth.uid == resource.data.userId;
-      allow write, delete: if false;
-    }
-  
+
+
 
     // ========================================
     // AI CHAT AUDIT LOGS
@@ -105,6 +159,13 @@ service cloud.firestore {
       allow read: if isAuthenticated() &&
         request.auth.uid == resource.data.userId;
       allow write, delete: if false;
+    }
+
+    // ========================================
+    // DEFAULT: DENY ALL (MUST BE LAST)
+    // ========================================
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

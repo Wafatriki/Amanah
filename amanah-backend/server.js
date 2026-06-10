@@ -4,7 +4,27 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const admin = require('firebase-admin');
 require('dotenv').config();
+
+// Initialize Firebase Admin
+const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './firebase-key.json';
+if (!fs.existsSync(serviceAccountPath)) {
+  console.warn(`⚠️  Firebase service account file not found at ${serviceAccountPath}`);
+  console.warn('   To enable Firebase Auth verification, add FIREBASE_SERVICE_ACCOUNT_PATH env var');
+}
+
+if (fs.existsSync(serviceAccountPath)) {
+  try {
+    const serviceAccount = require(path.resolve(serviceAccountPath));
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log('✅ Firebase Admin initialized');
+  } catch (error) {
+    console.error('❌ Error initializing Firebase Admin:', error.message);
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,6 +36,39 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// ========================================
+// FIREBASE AUTH VERIFICATION MIDDLEWARE
+// ========================================
+/**
+ * Verifies Firebase ID token from Authorization header
+ * Expected format: "Bearer <idToken>"
+ */
+const verifyFirebaseToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Missing Authorization header' });
+  }
+
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+
+  try {
+    if (!admin.apps.length) {
+      console.warn('⚠️  Firebase Admin not initialized, skipping token verification');
+      // Continuar sin verificación si Firebase no está configurado
+      return next();
+    }
+
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    req.user = decodedToken;
+    console.log(`✅ Token verified for user: ${decodedToken.uid}`);
+    next();
+  } catch (error) {
+    console.error('❌ Token verification failed:', error.message);
+    return res.status(403).json({ error: 'Invalid or expired token', details: error.message });
+  }
+};
 
 // Crear carpeta uploads si no existe
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -60,25 +113,30 @@ const upload = multer({
 
 /**
  * POST /upload
- * Subir un archivo
+ * Subir un archivo - REQUIERE autenticación Firebase
  */
-app.post('/upload', upload.single('file'), (req, res) => {
+app.post('/upload', verifyFirebaseToken, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file provided' });
   }
+
+  console.log(`📤 File uploaded by user ${req.user?.uid}: ${req.file.filename}`);
 
   res.json({
     fileId: req.file.filename,
     originalName: req.file.originalname,
     size: req.file.size,
     mimetype: req.file.mimetype,
-    downloadUrl: `${process.env.BACKEND_URL || `http://localhost:${PORT}`}/download/${req.file.filename}`
+    downloadUrl: `${process.env.BACKEND_URL || `http://localhost:${PORT}`}/download/${req.file.filename}`,
+    uploadedBy: req.user?.uid,
+    uploadedAt: new Date().toISOString()
   });
 });
 
 /**
  * GET /download/:fileId
- * Descargar un archivo
+ * Descargar un archivo - Se permite sin token (archivos compartidos)
+ * En producción, considerar agregar verificación de permisos
  */
 app.get('/download/:fileId', (req, res) => {
   const fileId = req.params.fileId;
@@ -88,6 +146,8 @@ app.get('/download/:fileId', (req, res) => {
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: 'File not found' });
   }
+
+  console.log(`📥 File downloaded: ${fileId}`);
 
   // Enviar archivo
   res.download(filePath, (err) => {
@@ -113,15 +173,17 @@ app.get('/file/:fileId', (req, res) => {
     return res.status(404).json({ error: 'File not found' });
   }
 
+  console.log(`👁️  File viewed inline: ${fileId}`);
+
   // Enviar archivo inline (sin descargar)
   res.sendFile(filePath);
 });
 
 /**
  * DELETE /delete/:fileId
- * Eliminar un archivo
+ * Eliminar un archivo - REQUIERE autenticación Firebase
  */
-app.delete('/delete/:fileId', (req, res) => {
+app.delete('/delete/:fileId', verifyFirebaseToken, (req, res) => {
   const fileId = req.params.fileId;
   const filePath = path.join(uploadsDir, fileId);
 
@@ -137,7 +199,8 @@ app.delete('/delete/:fileId', (req, res) => {
       return res.status(500).json({ error: 'Error deleting file' });
     }
 
-    res.json({ success: true, message: 'File deleted successfully' });
+    console.log(`🗑️  File deleted by user ${req.user?.uid}: ${fileId}`);
+    res.json({ success: true, message: 'File deleted successfully', deletedBy: req.user?.uid });
   });
 });
 
@@ -149,11 +212,12 @@ app.get('/', (req, res) => {
   res.json({
     message: 'Amanah Backend - Clinical Document Storage API',
     version: '1.0.0',
+    firebaseInitialized: admin.apps.length > 0,
     endpoints: {
-      upload: 'POST /upload',
+      upload: 'POST /upload (requires Firebase token)',
       download: 'GET /download/:fileId',
       viewFile: 'GET /file/:fileId',
-      delete: 'DELETE /delete/:fileId'
+      delete: 'DELETE /delete/:fileId (requires Firebase token)'
     }
   });
 });

@@ -118,7 +118,6 @@ export class TaskService {
       );
 
       const docRef = await addDoc(tasksCollection, taskData);
-      await setDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, docRef.id), taskData);
       console.log('[TASK-SERVICE] ✅ Task created successfully with ID:', docRef.id);
       console.log('[TASK-SERVICE] ✅ Full path:', `dependents/${task.dependentId}/tasks/${docRef.id}`);
       console.log('[TASK-SERVICE] Collection reference:', tasksCollection);
@@ -223,9 +222,6 @@ export class TaskService {
         taskRef = doc(this.firebaseService.firestore, this.tasksCollectionName, id);
       }
       await deleteDoc(taskRef);
-      if (dependentId) {
-        await deleteDoc(doc(this.firebaseService.firestore, this.tasksCollectionName, id)).catch(() => {});
-      }
     } catch (error) {
       console.error('Error deleting task:', error);
       throw error;

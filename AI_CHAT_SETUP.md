@@ -127,10 +127,6 @@ firebase emulators:start
 .\start-amanah.ps1
 ```
 
-Al terminar la sesión, para guardar de forma explícita los datos locales de Auth y Firestore:
-```powershell
-.\stop-amanah.ps1
-```
 
 3. Si prefieres hacerlo manualmente, en otra terminal desde `amanah-app`:
 ```bash
