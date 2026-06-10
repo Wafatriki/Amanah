@@ -35,28 +35,13 @@ export class DependentService {
 
   getDependentsForUser(userId: string): Observable<Dependent[]> {
     console.log('getDependentsForUser called with userId:', userId);
-
+  
     return from(
       (async () => {
         try {
           const dependentIds = new Set<string>();
-
-          // 1. Obtener dependientes creados por el usuario
-          console.log('Fetching dependents created by user...');
-          const createdQuery = query(
-            collection(
-              this.firebaseService.firestore,
-              this.dependentCollectionName
-            ),
-            where('createdBy', '==', userId)
-          );
-
-          const createdDocs = await getDocs(createdQuery);
-          const createdIds = createdDocs.docs.map(doc => doc.id);
-          console.log('Found created dependent IDs:', createdIds);
-          createdIds.forEach(id => dependentIds.add(id));
-
-          // 2. Obtener dependientes donde el usuario es cuidador
+  
+          // Obtener dependientes donde el usuario es cuidador
           console.log('Fetching dependents where user is caregiver...');
           const relationsQuery = query(
             collection(
@@ -65,20 +50,20 @@ export class DependentService {
             ),
             where('userId', '==', userId)
           );
-
+  
           const relationsDocs = await getDocs(relationsQuery);
           const caregiverIds = relationsDocs.docs.map(doc => doc.data()['dependentId']);
           console.log('Found caregiver dependent IDs:', caregiverIds);
           caregiverIds.forEach(id => dependentIds.add(id));
-
+  
           console.log('Combined dependent IDs:', Array.from(dependentIds));
-
+  
           if (dependentIds.size === 0) {
             console.log('No dependents found');
             return [];
           }
-
-          // 3. Obtener los datos de cada dependiente
+  
+          // Obtener los datos de cada dependiente
           const dependents: Dependent[] = [];
           for (const id of dependentIds) {
             try {
@@ -88,7 +73,7 @@ export class DependentService {
                 id
               );
               const dependentSnap = await getDoc(dependentRef);
-
+  
               if (dependentSnap.exists()) {
                 console.log('Loading dependent:', id, dependentSnap.data());
                 dependents.push(this.convertTimestamps(dependentSnap.data()));
@@ -99,7 +84,7 @@ export class DependentService {
               console.error(`Error loading dependent ${id}:`, error);
             }
           }
-
+  
           return dependents;
         } catch (error) {
           console.error('Error loading dependents:', error);
