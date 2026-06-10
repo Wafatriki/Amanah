@@ -1,120 +1,110 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ========================================
-    // HELPER FUNCTIONS
-    // ========================================
 
     function isAuthenticated() {
       return request.auth != null;
     }
-
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-
-    // NUEVA: verifica que el usuario autenticado
-    // tiene una relación con ese dependiente
     function isCaregiverOf(dependentId) {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/caregiver_dependents/$(request.auth.uid + "_" + dependentId));
     }
-
-    // ========================================
-    // DEFAULT DENEGAR ALL
-    // ========================================
+    function isParticipant(roomData) {
+      return request.auth.uid == roomData.user1Id ||
+             request.auth.uid == roomData.user2Id;
+    }
+    function isPrimaryCaregiver(dependentId) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/caregiver_dependents/$(request.auth.uid + "_" + dependentId)) &&
+        get(/databases/$(database)/documents/caregiver_dependents/$(request.auth.uid + "_" + dependentId)).data.role == "primary_caregiver";
+    }
 
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // ========================================
-    // USERS COLLECTION
-    // ========================================
-
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create, write: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId)
+        && !request.resource.data.diff(resource.data)
+            .affectedKeys().hasAny(['uid', 'email', 'role']);
     }
-
-    // ========================================
-    // DEPENDENTS + SUBCOLLECTIONS
-    // ========================================
 
     match /dependents/{dependentId} {
-  allow read, write: if isCaregiverOf(dependentId);
+      allow read, write: if isCaregiverOf(dependentId);
 
-  match /tasks/{taskId} {
-    allow read, write: if isCaregiverOf(dependentId);
-  }
-  match /medications/{medicationId} {
-    allow read, write: if isCaregiverOf(dependentId);
-  }
-  match /appointments/{appointmentId} {
-    allow read, write: if isCaregiverOf(dependentId);
-  }
-  match /calendar_events/{eventId} {
-    allow read, write: if isCaregiverOf(dependentId);
-  }
-  match /messages/{messageId} {
-    allow read, write: if isCaregiverOf(dependentId);
-  }
-  match /documents/{documentId} {
-    allow read, write: if isCaregiverOf(dependentId);
-  }
-}
-
-    // ========================================
-    // LEGACY COLLECTIONS
-    // ========================================
-
-    match /tasks/{taskId} {
-      allow read, write: if isAuthenticated();
+      match /tasks/{taskId} {
+        allow read, write: if isCaregiverOf(dependentId);
+      }
+      match /medications/{medicationId} {
+        allow read, write: if isCaregiverOf(dependentId);
+      }
+      match /appointments/{appointmentId} {
+        allow read, write: if isCaregiverOf(dependentId);
+      }
+      match /calendar_events/{eventId} {
+        allow read, write: if isCaregiverOf(dependentId);
+      }
+      match /messages/{messageId} {
+        allow read, write: if isCaregiverOf(dependentId);
+      }
+      match /documents/{documentId} {
+        allow read, write: if isCaregiverOf(dependentId);
+      }
     }
-
-    match /medications/{medicationId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /appointments/{appointmentId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    // ========================================
-    // CAREGIVER RELACIONES
-    // ========================================
 
     match /caregiver_dependents/{relationId} {
-      allow read, write: if isAuthenticated();
-    }
+      allow read: if isAuthenticated();
 
-    // ========================================
-    // CHAT
-    // ========================================
+      // ✅ CORREGIDO: permite crear si eres primary_caregiver YA EXISTENTE,
+      //    O si la relación que estás creando te corresponde a ti mismo
+      //    (caso: aceptar invitación crea tu propia relación)
+      allow create: if isPrimaryCaregiver(request.resource.data.dependentId)
+        || (isAuthenticated()
+            && request.auth.uid == request.resource.data.userId
+            && relationId == request.auth.uid + "_" + request.resource.data.dependentId);
+
+      allow update: if isPrimaryCaregiver(resource.data.dependentId);
+      allow delete: if isPrimaryCaregiver(resource.data.dependentId);
+    }
 
     match /chatRooms/{roomId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if isAuthenticated() && isParticipant(resource.data);
+      allow create: if isAuthenticated() && isParticipant(request.resource.data);
     }
-
-    // ========================================
-    // INVITACIONES
-    // ========================================
 
     match /invitations/{invitationId} {
-      allow read, write: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.inviterUserId;
+      allow read: if isAuthenticated();
+      // ✅ Solo el destinatario o el invitador pueden actualizar
+      allow update: if isAuthenticated() &&
+        (request.auth.uid == resource.data.inviterUserId ||
+         request.auth.uid == resource.data.inviteeUserId);
+      allow delete: if isAuthenticated() &&
+        request.auth.uid == resource.data.inviterUserId;
     }
+
+    match /ai_chat_logs/{logId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated() &&
+        request.auth.uid == resource.data.userId;
+      allow write, delete: if false;
+    }
+  
 
     // ========================================
     // AI CHAT AUDIT LOGS
     // ========================================
-
     match /ai_chat_logs/{logId} {
       allow create: if isAuthenticated();
-      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow read: if isAuthenticated() &&
+        request.auth.uid == resource.data.userId;
       allow write, delete: if false;
     }
-
   }
 }
