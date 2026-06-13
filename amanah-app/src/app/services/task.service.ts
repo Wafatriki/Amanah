@@ -37,11 +37,11 @@ export class TaskService {
     if (obj === null || obj === undefined) {
       return undefined;
     }
-    
+
     if (Array.isArray(obj)) {
       return obj.map(item => this.cleanUndefinedValues(item)).filter(item => item !== undefined);
     }
-    
+
     if (typeof obj === 'object') {
       const cleaned: any = {};
       for (const key in obj) {
@@ -54,7 +54,7 @@ export class TaskService {
       }
       return Object.keys(cleaned).length > 0 ? cleaned : undefined;
     }
-    
+
     return obj;
   }
 
