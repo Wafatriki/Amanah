@@ -4,34 +4,88 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const admin = require('firebase-admin');
+
+// Verificar que firebase-admin está disponible
+let admin;
+try {
+  admin = require('firebase-admin');
+  console.log('✅ firebase-admin module loaded');
+} catch (error) {
+  console.error('❌ Error loading firebase-admin:', error.message);
+  // Continuar sin admin
+}
+
 require('dotenv').config();
 
 // Initialize Firebase Admin
 const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './firebase-key.json';
+let firebaseInitialized = false;
+
 if (!fs.existsSync(serviceAccountPath)) {
   console.warn(`⚠️  Firebase service account file not found at ${serviceAccountPath}`);
-  console.warn('   To enable Firebase Auth verification, add FIREBASE_SERVICE_ACCOUNT_PATH env var');
+  console.warn('   Continuing in development mode without token verification');
 }
 
-if (fs.existsSync(serviceAccountPath)) {
+if (admin && fs.existsSync(serviceAccountPath)) {
   try {
-    const serviceAccount = require(path.resolve(serviceAccountPath));
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    console.log('✅ Firebase Admin initialized');
+    // Leer el archivo como texto y parsear JSON
+    const serviceAccountRaw = fs.readFileSync(serviceAccountPath, 'utf-8');
+    const serviceAccount = JSON.parse(serviceAccountRaw);
+    
+    console.log('🔧 Attempting to initialize Firebase Admin...');
+    
+    // Verificar que admin.apps existe
+    if (!admin.apps) {
+      console.warn('⚠️  admin.apps not available');
+    } else if (admin.apps.length === 0) {
+      // Intentar inicializar solo si no hay apps ya inicializadas
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      firebaseInitialized = true;
+      console.log('✅ Firebase Admin initialized successfully');
+    } else {
+      firebaseInitialized = true;
+      console.log('✅ Firebase Admin already initialized');
+    }
   } catch (error) {
     console.error('❌ Error initializing Firebase Admin:', error.message);
+    console.warn('⚠️  Continuing in development mode without token verification');
   }
+} else {
+  console.warn('⚠️  Firebase Admin initialization skipped (development mode)');
 }
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORS configuration
+// CORS configuration - Permitir requests desde el frontend de Firebase y localhost para desarrollo
 app.use(cors({
-  origin: process.env.FRONTEND_URL || ['http://localhost:4200', 'http://localhost:3000'],
+  origin: function(origin, callback) {
+    // Orígenes permitidos
+    const allowedOrigins = [
+      'http://localhost:4200',
+      'http://localhost:3000',
+      'https://amanah-app-4e59f.web.app',
+      'https://amanah-app-4e59f.firebaseapp.com'
+    ];
+
+    // En producción, si FRONTEND_URL está configurado, usarlo
+    if (process.env.FRONTEND_URL) {
+      allowedOrigins.push(process.env.FRONTEND_URL);
+    }
+
+    // Permitir requests sin origen (como desde móvil o apps de escritorio)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
@@ -54,9 +108,16 @@ const verifyFirebaseToken = async (req, res, next) => {
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 
   try {
-    if (!admin.apps.length) {
-      console.warn('⚠️  Firebase Admin not initialized, skipping token verification');
-      // Continuar sin verificación si Firebase no está configurado
+    // Si Firebase no está inicializado, permitir en desarrollo
+    if (!firebaseInitialized) {
+      console.warn('⚠️  Firebase Admin not initialized, allowing request in development mode');
+      req.user = { uid: 'dev-user', email: 'dev@localhost' };
+      return next();
+    }
+
+    if (!admin || !admin.auth) {
+      console.warn('⚠️  admin.auth not available');
+      req.user = { uid: 'dev-user', email: 'dev@localhost' };
       return next();
     }
 

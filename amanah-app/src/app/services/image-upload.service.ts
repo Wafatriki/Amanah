@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
+import { getAuth } from 'firebase/auth';
 
 export interface UploadResponse {
   fileId: string;
@@ -45,6 +46,14 @@ export class ImageUploadService {
     }
 
     try {
+      // Obtener el token de autenticación
+      const auth = getAuth();
+      if (!auth.currentUser) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      const token = await auth.currentUser.getIdToken();
+
       const formData = new FormData();
       formData.append('file', file);
 
@@ -53,6 +62,9 @@ export class ImageUploadService {
       const response = await fetch(`${this.backendUrl}/upload`, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
         // NO incluir Content-Type header - fetch lo hará automáticamente
       });
 
@@ -84,8 +96,19 @@ export class ImageUploadService {
    */
   async deleteImage(fileId: string): Promise<{ success: boolean; message: string }> {
     try {
+      // Obtener el token de autenticación
+      const auth = getAuth();
+      if (!auth.currentUser) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      const token = await auth.currentUser.getIdToken();
+
       const response = await fetch(`${this.backendUrl}/delete/${fileId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (!response.ok) {

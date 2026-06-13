@@ -32,6 +32,32 @@ export class TaskService {
 
   constructor(private readonly firebaseService: FirebaseService) {}
 
+  // Función para limpiar recursivamente valores undefined de objetos
+  private cleanUndefinedValues(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return undefined;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.cleanUndefinedValues(item)).filter(item => item !== undefined);
+    }
+    
+    if (typeof obj === 'object') {
+      const cleaned: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          const value = this.cleanUndefinedValues(obj[key]);
+          if (value !== undefined) {
+            cleaned[key] = value;
+          }
+        }
+      }
+      return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+    }
+    
+    return obj;
+  }
+
   private convertTimestamps(task: any): Task {
     if (task.dueDate instanceof Timestamp) {
       task.dueDate = task.dueDate.toDate();
@@ -165,9 +191,9 @@ export class TaskService {
       if (task.assignedTo !== undefined) updateData['assignedTo'] = task.assignedTo;
       if (task.notes !== undefined) updateData['notes'] = task.notes;
       if (task.dueTime !== undefined) updateData['dueTime'] = task.dueTime;
-      if (task.recurrence !== undefined) updateData['recurrence'] = task.recurrence;
+      if (task.recurrence !== undefined) updateData['recurrence'] = this.cleanUndefinedValues(task.recurrence);
       if (task.recurrenceExceptions !== undefined) updateData['recurrenceExceptions'] = task.recurrenceExceptions;
-      if (task.reminder !== undefined) updateData['reminder'] = task.reminder;
+      if (task.reminder !== undefined) updateData['reminder'] = this.cleanUndefinedValues(task.reminder);
 
       // Convertir dueDate a Timestamp solo si está presente
       if (task.dueDate) {
@@ -175,6 +201,7 @@ export class TaskService {
       }
 
       // Filtrar campos undefined (Firestore no permite undefined)
+      // Esto incluye campos que cleanUndefinedValues retornó como undefined
       Object.keys(updateData).forEach(key => {
         if (updateData[key] === undefined) {
           delete updateData[key];

@@ -61,9 +61,9 @@ export class AIChatService {
       }
 
       try {
-        connectFunctionsEmulator(this.functions, 'localhost', 5001);
+        connectFunctionsEmulator(this.functions, '127.0.0.1', 5001);
         this.functionsEmulatorConnected = true;
-        console.log('AIChatService: Conectado a Functions Emulator (localhost:5001)');
+        console.log('AIChatService: Conectado a Functions Emulator (127.0.0.1:5001)');
       } catch (error: any) {
         if (error?.message?.includes('already')) {
           this.functionsEmulatorConnected = true;
